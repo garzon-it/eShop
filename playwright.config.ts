@@ -87,11 +87,13 @@ export default defineConfig({
   /* 🚀 Start eShop backend before tests */
   webServer: {
     // Command to start the .NET host
-    command: 'dotnet run --project src/eShop.AppHost',
+    command: 'dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj',
     // URL that Playwright will wait for
     url: 'https://localhost:19888',
     // Don’t kill the server if one is already running (useful for local debugging)
     reuseExistingServer: !process.env.CI,
+    stderr: 'pipe',
+    stdout: 'pipe',
     // Maximum time to wait for the server to be ready
     timeout: 120 * 1000
   },
