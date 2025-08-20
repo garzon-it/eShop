@@ -10,7 +10,7 @@ on:
       - '.github/workflows/pr-validation-maui.yml'
   push:
     branches:
-      - main
+      - test
     paths:
       - 'src/ClientApp/**'
       - 'tests/ClientApp.UnitTests/**'
