@@ -26,6 +26,8 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
+    - name: Add .NET tools to PATH
+      run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
     - name: Install dependencies
       run: npm ci
     - name: Install .NET HTTPS Development Certificate
