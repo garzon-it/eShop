@@ -60,7 +60,7 @@ jobs:
     - name: Debug curl server
       run: |
         echo "Testing with curl..."
-        curl -vk https://localhost:19888/ || true
+        curl -vk http://localhost:19888/ || true
 
     - name: Run Playwright tests
       run: npx playwright test --reporter=list
