@@ -1,14 +1,14 @@
 name: Playwright Tests for eShop
 on:
   push:
-    branches: [ main ]
+    branches: [ test ]
     paths-ignore:
       - '**.md'
       - 'src/ClientApp/**'
       - 'tests/ClientApp.UnitTests/**'
       - '.github/workflows/pr-validation-maui.yml'
   pull_request:
-    branches: [ main ]
+    branches: [ test ]
     paths-ignore:
       - '**.md'
       - 'src/ClientApp/**'
