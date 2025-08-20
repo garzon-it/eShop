@@ -1,6 +1,5 @@
 name: eShop Pull Request Validation
 
-
 on:
   pull_request:
     paths-ignore:
@@ -17,14 +16,49 @@ on:
       - 'tests/ClientApp.UnitTests/**'
       - '.github/workflows/pr-validation-maui.yml'
 
-jobs:  
+jobs:
   test:
     runs-on: self-hosted
+
+    # ✨ Start a fresh Postgres **per run** (no manual DB/user creation needed)
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: yourWeak(!)Password
+          # creates this DB at startup; we'll add OrderingDB in a step below
+          POSTGRES_DB: CatalogDB
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
-      - name: Setup .NET (global.json)
-        uses: actions/setup-dotnet@v3
-      - name: Build 
-        run: dotnet build eShop.Web.slnf
+
+      # .NET SDK per global.json (no root needed)
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+
+      # Create any **extra** DBs your tests expect (Ordering uses its own)
+      - name: Create extra databases
+        run: |
+          docker exec ${{ job.services.postgres.id }} \
+            psql -U postgres -c 'CREATE DATABASE "OrderingDB";'
+
+      # Optional: prove connection strings if you want to override appsettings
+      # env:
+      #   ConnectionStrings__CatalogDB: Host=localhost;Database=CatalogDB;Username=postgres;Password=yourWeak(!)Password
+      #   ConnectionStrings__OrderingDB: Host=localhost;Database=OrderingDB;Username=postgres;Password=yourWeak(!)Password
+
+      - name: Build
+        run: dotnet build eShop.Web.slnf --nologo --verbosity:minimal
+
       - name: Test
-        run: dotnet test eShop.Web.slnf
+        run: dotnet test eShop.Web.slnf --nologo --verbosity:minimal
