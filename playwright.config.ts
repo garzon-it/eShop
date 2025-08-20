@@ -87,7 +87,7 @@ export default defineConfig({
   /* 🚀 Start eShop backend before tests */
   webServer: {
     // Command to start the .NET host
-    command: 'dotnet run --project src/eShop.AppHost --urls "http://localhost:19888"',
+      command: 'dotnet run --project src/eShop.AppHost --no-launch-profile --urls "http://localhost:19888"',
     // URL that Playwright will wait for
     url: 'http://localhost:19888',
     // Don’t kill the server if one is already running (useful for local debugging)
