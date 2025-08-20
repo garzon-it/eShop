@@ -6,7 +6,7 @@
     <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
     <!-- <TargetFrameworks>$(TargetFrameworks);net9.0-tizen</TargetFrameworks> -->
 
-    <!-- Note for MacCatalyst:
+    <!-- Note for MacCatalyst::
     The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
     When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifer>.
     The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
