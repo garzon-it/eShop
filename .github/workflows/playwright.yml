@@ -28,7 +28,26 @@ jobs:
         node-version: lts/*
     - name: Add .NET tools to PATH
       run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-    - name: Install dependencies
+
+    - name: Install system dependencies for Playwright
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libatk1.0-0 \
+          libatk-bridge2.0-0 \
+          libcups2 \
+          libatspi2.0-0 \
+          libxcomposite1 \
+          libxdamage1 \
+          libxfixes3 \
+          libxrandr2 \
+          libgbm1 \
+          libxkbcommon0 \
+          libpango-1.0-0 \
+          libcairo2 \
+          libasound2
+
+    - name: Install npm dependencies
       run: npm ci
     - name: Install .NET HTTPS Development Certificate
       # if: matrix.os == 'ubuntu-latest'
