@@ -329,7 +329,7 @@ public sealed class CatalogApiTests : IClassFixture<CatalogApiFixture>
         var result = JsonSerializer.Deserialize<List<CatalogType>>(body, _jsonSerializerOptions);
 
         // Assert
-        Assert.Equal(7, result.Count);
+        Assert.Equal(8, result.Count);
         Assert.NotNull(result);
     }
 
