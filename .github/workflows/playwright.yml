@@ -56,18 +56,6 @@ jobs:
         dotnet linux-dev-certs install
     - name: Install Playwright Browsers
       run: npx playwright install chromium
-    - name: Wait for catalog-api to be ready
-      run: |
-        for i in {1..30}; do
-          if curl -ksf https://localhost:19888/ > /dev/null; then
-            echo "✅ App is up!"
-            exit 0
-          fi
-          echo "⏳ Waiting for app..."
-          sleep 5
-        done
-        echo "❌ App did not start in time"
-        exit 1
 
     - name: Run Playwright tests
       run: npx playwright test
