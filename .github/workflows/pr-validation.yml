@@ -9,7 +9,7 @@ on:
       - '.github/workflows/pr-validation-maui.yml'
   push:
     branches:
-      - main
+      - test
     paths-ignore:
       - '**.md'
       - 'src/ClientApp/**'
