@@ -41,7 +41,8 @@ jobs:
       - uses: actions/checkout@v4
 
       # .NET SDK per global.json (no root needed)
-      - uses: actions/setup-dotnet@v4
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v3
         with:
           global-json-file: global.json
           cache: true
@@ -57,8 +58,8 @@ jobs:
       #   ConnectionStrings__CatalogDB: Host=localhost;Database=CatalogDB;Username=postgres;Password=yourWeak(!)Password
       #   ConnectionStrings__OrderingDB: Host=localhost;Database=OrderingDB;Username=postgres;Password=yourWeak(!)Password
 
-      - name: Build
-        run: dotnet build eShop.Web.slnf --nologo --verbosity:minimal
+      - name: Build 
+        run: dotnet build eShop.Web.slnf
 
       - name: Test
-        run: dotnet test eShop.Web.slnf --nologo --verbosity:minimal
+        run: dotnet test eShop.Web.slnf
