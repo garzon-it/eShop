@@ -83,6 +83,7 @@ export default defineConfig({
     // },
   ],
 
+  
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj',
