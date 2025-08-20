@@ -22,7 +22,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'https://localhost:19888',
+    baseURL: 'http://localhost:19888',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -87,9 +87,9 @@ export default defineConfig({
   /* 🚀 Start eShop backend before tests */
   webServer: {
     // Command to start the .NET host
-    command: 'dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj',
+    command: 'dotnet run --project src/eShop.AppHost --urls "http://localhost:19888"',
     // URL that Playwright will wait for
-    url: 'https://localhost:19888',
+    url: 'http://localhost:19888',
     // Don’t kill the server if one is already running (useful for local debugging)
     reuseExistingServer: !process.env.CI,
     stderr: 'pipe',
