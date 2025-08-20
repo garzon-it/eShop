@@ -1,5 +1,6 @@
 name: eShop Pull Request Validation
 
+
 on:
   pull_request:
     paths-ignore:
@@ -18,7 +19,7 @@ on:
 
 jobs:  
   test:
-    runs-on: ubuntu-latest    
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET (global.json)
