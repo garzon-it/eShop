@@ -59,4 +59,10 @@ jobs:
         run: dotnet build eShop.Web.slnf
 
       - name: Test
-        run: dotnet test eShop.Web.slnf
+        run: dotnet test eShop.Web.slnf --logger "junit;LogFilePath=./artifacts/test-results/TestResults.xml"
+
+      - name: Upload test results (JUnit XML)
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: ./artifacts/test-results/TestResults.xml
