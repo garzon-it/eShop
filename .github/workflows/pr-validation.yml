@@ -62,34 +62,34 @@ jobs:
       #   run: |
       #     mkdir -p artifacts/test-results
       #     dotnet test tests/ClientApp.UnitTests/ClientApp.UnitTests.csproj \
-      #       --logger "trx;LogFileName=Ordering.trx" \
+      #       --logger "trx;LogFileName=ClientApp.trx" \
       #       --results-directory artifacts/test-results
 
       - name: Run Basket.UnitTests
         run: |
           mkdir -p artifacts/test-results
           dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj \
-            --logger "trx;LogFileName=Ordering.trx" \
+            --logger "trx;LogFileName=Basket-unit-tests.trx" \
             --results-directory artifacts/test-results
 
       - name: Run Ordering.UnitTests
         run: |
           mkdir -p artifacts/test-results
           dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj \
-            --logger "trx;LogFileName=Ordering.trx" \
+            --logger "trx;LogFileName=Ordering-unit-tests.trx" \
             --results-directory artifacts/test-results
   
       - name: Run Ordering.FunctionalTests
         run: |
           mkdir -p artifacts/test-results
           dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj \
-            --logger "trx;LogFileName=Ordering.trx" \
+            --logger "trx;LogFileName=Ordering-functional-tests.trx" \
             --results-directory artifacts/test-results
 
       - name: Run Catalog.FunctionalTests
         run: |
           dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj \
-            --logger "trx;LogFileName=Catalog.trx" \
+            --logger "trx;LogFileName=Catalog=functional-tests.trx" \
             --results-directory artifacts/test-results
 
       - name: Install trx2junit
