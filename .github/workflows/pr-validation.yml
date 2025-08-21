@@ -37,10 +37,6 @@ jobs:
           --health-retries 10
 
     steps:
-      - name: Cleanup stale Postgres containers
-        run: |
-          docker ps -aq --filter "ancestor=postgres:15" | xargs -r docker rm -f
-
       - uses: actions/checkout@v4
 
       # .NET SDK per global.json (no root needed)
@@ -107,3 +103,8 @@ jobs:
         with:
           name: unit-test-results
           path: artifacts/test-results/*.xml
+
+      - name: Cleanup Postgres service
+        if: always()
+        run: |
+          docker ps -aq --filter "ancestor=postgres:15" | xargs -r docker rm -f
