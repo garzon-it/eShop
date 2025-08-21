@@ -89,7 +89,7 @@ jobs:
       - name: Run Catalog.FunctionalTests
         run: |
           dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj \
-            --logger "trx;LogFileName=Catalog=functional-tests.trx" \
+            --logger "trx;LogFileName=Catalog-functional-tests.trx" \
             --results-directory artifacts/test-results
 
       - name: Install trx2junit
