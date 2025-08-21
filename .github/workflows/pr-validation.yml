@@ -58,10 +58,31 @@ jobs:
       - name: Build 
         run: dotnet build eShop.Web.slnf
         
+      - name: Run ClientApp.UnitTests
+        run: |
+          mkdir -p artifacts/test-results
+          dotnet test tests/ClientApp.UnitTests/ClientApp.UnitTests.csproj \
+            --logger "trx;LogFileName=Ordering.trx" \
+            --results-directory artifacts/test-results
+
+      - name: Run Basket.UnitTests
+        run: |
+          mkdir -p artifacts/test-results
+          dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj \
+            --logger "trx;LogFileName=Ordering.trx" \
+            --results-directory artifacts/test-results
+
       - name: Run Ordering.UnitTests
         run: |
           mkdir -p artifacts/test-results
           dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj \
+            --logger "trx;LogFileName=Ordering.trx" \
+            --results-directory artifacts/test-results
+  
+      - name: Run Ordering.FunctionalTests
+        run: |
+          mkdir -p artifacts/test-results
+          dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj \
             --logger "trx;LogFileName=Ordering.trx" \
             --results-directory artifacts/test-results
 
