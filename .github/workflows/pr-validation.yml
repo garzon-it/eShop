@@ -58,12 +58,12 @@ jobs:
       - name: Build 
         run: dotnet build eShop.Web.slnf
         
-      - name: Run ClientApp.UnitTests
-        run: |
-          mkdir -p artifacts/test-results
-          dotnet test tests/ClientApp.UnitTests/ClientApp.UnitTests.csproj \
-            --logger "trx;LogFileName=Ordering.trx" \
-            --results-directory artifacts/test-results
+      # - name: Run ClientApp.UnitTests # Runs only with maui-tizen
+      #   run: |
+      #     mkdir -p artifacts/test-results
+      #     dotnet test tests/ClientApp.UnitTests/ClientApp.UnitTests.csproj \
+      #       --logger "trx;LogFileName=Ordering.trx" \
+      #       --results-directory artifacts/test-results
 
       - name: Run Basket.UnitTests
         run: |
