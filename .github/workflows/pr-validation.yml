@@ -1,6 +1,5 @@
 name: eShop Pull Request Validation
 
-
 on:
   pull_request:
     paths-ignore:
@@ -10,21 +9,103 @@ on:
       - '.github/workflows/pr-validation-maui.yml'
   push:
     branches:
-      - main
+      - continuous_testing
     paths-ignore:
       - '**.md'
       - 'src/ClientApp/**'
       - 'tests/ClientApp.UnitTests/**'
       - '.github/workflows/pr-validation-maui.yml'
 
-jobs:  
+jobs:
   test:
     runs-on: self-hosted
+
+    # ✨ Start a fresh Postgres **per run** (no manual DB/user creation needed)
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: yourWeak(!)Password
+          # creates this DB at startup; we'll add OrderingDB in a step below
+          POSTGRES_DB: CatalogDB
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
+
+      # .NET SDK per global.json (no root needed)
       - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v3
+
+      # Create any **extra** DBs your tests expect (Ordering uses its own)
+      - name: Create extra databases
+        run: |
+          docker exec ${{ job.services.postgres.id }} \
+            psql -U postgres -c 'CREATE DATABASE "OrderingDB";'
+
+      # Optional: prove connection strings if you want to override appsettings
+      # env:
+      #   ConnectionStrings__CatalogDB: Host=localhost;Database=CatalogDB;Username=postgres;Password=yourWeak(!)Password
+      #   ConnectionStrings__OrderingDB: Host=localhost;Database=OrderingDB;Username=postgres;Password=yourWeak(!)Password
+
       - name: Build 
         run: dotnet build eShop.Web.slnf
-      - name: Test
-        run: dotnet test eShop.Web.slnf
+        
+      # - name: Run ClientApp.UnitTests # Runs only with maui-tizen
+      #   run: |
+      #     mkdir -p artifacts/test-results
+      #     dotnet test tests/ClientApp.UnitTests/ClientApp.UnitTests.csproj \
+      #       --logger "trx;LogFileName=ClientApp.trx" \
+      #       --results-directory artifacts/test-results
+
+      - name: Run Basket.UnitTests
+        run: |
+          mkdir -p artifacts/test-results
+          dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj \
+            --logger "trx;LogFileName=Basket-unit-tests.trx" \
+            --results-directory artifacts/test-results
+
+      - name: Run Ordering.UnitTests
+        run: |
+          mkdir -p artifacts/test-results
+          dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj \
+            --logger "trx;LogFileName=Ordering-unit-tests.trx" \
+            --results-directory artifacts/test-results
+  
+      - name: Run Ordering.FunctionalTests
+        run: |
+          mkdir -p artifacts/test-results
+          dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj \
+            --logger "trx;LogFileName=Ordering-functional-tests.trx" \
+            --results-directory artifacts/test-results
+
+      - name: Run Catalog.FunctionalTests
+        run: |
+          dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj \
+            --logger "trx;LogFileName=Catalog-functional-tests.trx" \
+            --results-directory artifacts/test-results
+
+      - name: Install trx2junit
+        if: always() 
+        run: dotnet new tool-manifest && dotnet tool install trx2junit
+
+      - name: Convert TRX to JUnit
+        if: always() 
+        run: |
+          for f in artifacts/test-results/*.trx; do
+            dotnet tool run trx2junit "$f" --output "${f%.trx}.xml"
+          done
+
+      - name: Upload test results
+        if: always() 
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: artifacts/test-results/*.xml
