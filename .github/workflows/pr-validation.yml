@@ -93,15 +93,18 @@ jobs:
             --results-directory artifacts/test-results
 
       - name: Install trx2junit
+        if: always() 
         run: dotnet new tool-manifest && dotnet tool install trx2junit
 
       - name: Convert TRX to JUnit
+        if: always() 
         run: |
           for f in artifacts/test-results/*.trx; do
             dotnet tool run trx2junit "$f" --output "${f%.trx}.xml"
           done
 
       - name: Upload test results
+        if: always() 
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
