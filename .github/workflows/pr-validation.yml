@@ -58,23 +58,30 @@ jobs:
       - name: Build 
         run: dotnet build eShop.Web.slnf
         
-      - name: Test
+      - name: Run Ordering.UnitTests
         run: |
           mkdir -p artifacts/test-results
-          dotnet test eShop.Web.slnf \
-            --logger "trx;LogFileName=TestResults.trx" \
+          dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj \
+            --logger "trx;LogFileName=Ordering.trx" \
             --results-directory artifacts/test-results
+
+      - name: Run Catalog.FunctionalTests
+        run: |
+          dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj \
+            --logger "trx;LogFileName=Catalog.trx" \
+            --results-directory artifacts/test-results
+
+      - name: Install trx2junit
+        run: dotnet new tool-manifest && dotnet tool install trx2junit
 
       - name: Convert TRX to JUnit
         run: |
-          dotnet tool install --local trx2junit
           for f in artifacts/test-results/*.trx; do
             dotnet tool run trx2junit "$f" --output "${f%.trx}.xml"
           done
 
-      - name: Upload JUnit results
+      - name: Upload test results
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
           path: artifacts/test-results/*.xml
-
