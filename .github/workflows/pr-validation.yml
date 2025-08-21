@@ -103,8 +103,3 @@ jobs:
         with:
           name: unit-test-results
           path: artifacts/test-results/*.xml
-
-      - name: Cleanup Postgres service
-        if: always()
-        run: |
-          docker ps -aq --filter "ancestor=postgres:15" | xargs -r docker rm -f
