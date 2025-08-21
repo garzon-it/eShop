@@ -29,6 +29,7 @@ jobs:
     - name: Add .NET tools to PATH
       run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
+    # TODO andres: sudo password must be entered manually, how to fix?
     - name: Install system dependencies for Playwright
       run: |
         sudo apt-get update
