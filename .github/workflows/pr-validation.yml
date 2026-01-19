@@ -41,7 +41,16 @@ jobs:
 
       # .NET SDK per global.json (no root needed)
       - name: Setup .NET (global.json)
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/.dotnet
+
+      - name: Add .NET to PATH
+        run: |
+          echo "${{ runner.temp }}/.dotnet" >> $GITHUB_PATH
+          echo "${{ runner.temp }}/.dotnet/tools" >> $GITHUB_PATH
 
       # Create any **extra** DBs your tests expect (Ordering uses its own)
       - name: Create extra databases
