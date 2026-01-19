@@ -42,6 +42,7 @@ jobs:
       run: |
         echo "${{ runner.temp }}/.dotnet" >> $GITHUB_PATH
         echo "${{ runner.temp }}/.dotnet/tools" >> $GITHUB_PATH
+        echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
     
     - name: Install npm dependencies
       run: npm ci
@@ -49,6 +50,7 @@ jobs:
     - name: Install .NET HTTPS Development Certificate
       run: |
         dotnet tool update -g linux-dev-certs
+        export PATH="$PATH:$HOME/.dotnet/tools"
         dotnet linux-dev-certs install
     
     - name: Install Playwright Browsers with system dependencies
