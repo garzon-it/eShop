@@ -17,19 +17,31 @@ on:
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: self-hosted
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner: [self-hosted]  # Change to [ubuntu-latest] or [self-hosted, ubuntu-latest] as needed
+    
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-dotnet@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
         global-json-file: global.json
-    - uses: actions/setup-node@v4
+      env:
+        DOTNET_INSTALL_DIR: ${{ runner.temp }}/.dotnet
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
         node-version: lts/*
-    - name: Add .NET tools to PATH
-      run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-
-    # TODO andres: sudo password must be entered manually, how to fix?
+    
+    - name: Add .NET to PATH
+      run: |
+        echo "${{ runner.temp }}/.dotnet" >> $GITHUB_PATH
+        echo "${{ runner.temp }}/.dotnet/tools" >> $GITHUB_PATH
+    
     - name: Install system dependencies for Playwright
       run: |
         sudo apt-get update
@@ -47,22 +59,23 @@ jobs:
           libpango-1.0-0 \
           libcairo2 \
           libasound2
-
+    
     - name: Install npm dependencies
       run: npm ci
+    
     - name: Install .NET HTTPS Development Certificate
-      # if: matrix.os == 'ubuntu-latest'
       run: |
         dotnet tool update -g linux-dev-certs
         dotnet linux-dev-certs install
+    
     - name: Install Playwright Browsers
       run: npx playwright install chromium
-
+    
     - name: Debug curl server
       run: |
         echo "Testing with curl..."
         curl -vk https://localhost:19888/ || true
-
+    
     - name: Run Playwright tests
       run: npx playwright test
       env:
@@ -70,15 +83,17 @@ jobs:
         USERNAME1: bob
         PASSWORD: Pass123$
         DEBUG: pw:webserver*
-        
-    - uses: actions/upload-artifact@v4
+    
+    - name: Upload Playwright report
+      uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: playwright-report
+        name: playwright-report-${{ matrix.runner }}
         path: playwright-report/
-
-    - uses: actions/upload-artifact@v4
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: e2e-junit
+        name: e2e-junit-${{ matrix.runner }}
         path: artifacts/test-results/e2e-results.xml
