@@ -14,13 +14,14 @@ on:
       - 'src/ClientApp/**'
       - 'test/ClientApp.UnitTests/**'
       - '.github/workflows/pr-validation-maui.yml'
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        runner: [self-hosted]  # Change to [ubuntu-latest] or [self-hosted, ubuntu-latest] as needed
+        runner: [self-hosted]  # Change to [ubuntu-latest] as needed
     
     steps:
     - uses: actions/checkout@v4
@@ -42,24 +43,6 @@ jobs:
         echo "${{ runner.temp }}/.dotnet" >> $GITHUB_PATH
         echo "${{ runner.temp }}/.dotnet/tools" >> $GITHUB_PATH
     
-    - name: Install system dependencies for Playwright
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libatk1.0-0 \
-          libatk-bridge2.0-0 \
-          libcups2 \
-          libatspi2.0-0 \
-          libxcomposite1 \
-          libxdamage1 \
-          libxfixes3 \
-          libxrandr2 \
-          libgbm1 \
-          libxkbcommon0 \
-          libpango-1.0-0 \
-          libcairo2 \
-          libasound2
-    
     - name: Install npm dependencies
       run: npm ci
     
@@ -68,8 +51,8 @@ jobs:
         dotnet tool update -g linux-dev-certs
         dotnet linux-dev-certs install
     
-    - name: Install Playwright Browsers
-      run: npx playwright install chromium
+    - name: Install Playwright Browsers with system dependencies
+      run: npx playwright install --with-deps chromium
     
     - name: Debug curl server
       run: |
