@@ -1,5 +1,4 @@
 name: eShop Pull Request Validation
-# .
 on:
   pull_request:
     paths-ignore:
@@ -18,7 +17,15 @@ on:
 
 jobs:
   test:
-    runs-on: self-hosted
+    runs-on: ${{ matrix.runner }}
+    
+    strategy:
+      matrix:
+        runner: [self-hosted, ubuntu-latest]  # Run on both
+        # Or choose one:
+        # runner: [self-hosted]           # Self-hosted only
+        # runner: [ubuntu-latest]         # GitHub-hosted only
+      fail-fast: false  # Continue testing other runners even if one fails
 
     # ✨ Start a fresh Postgres **per run**
     services:
@@ -60,13 +67,6 @@ jobs:
 
       - name: Build 
         run: dotnet build eShop.Web.slnf
-        
-      # - name: Run ClientApp.UnitTests # Runs only with maui-tizen
-      #   run: |
-      #     mkdir -p artifacts/test-results
-      #     dotnet test tests/ClientApp.UnitTests/ClientApp.UnitTests.csproj \
-      #       --logger "trx;LogFileName=ClientApp.trx" \
-      #       --results-directory artifacts/test-results
 
       - name: Run Basket.UnitTests
         run: |
@@ -110,5 +110,5 @@ jobs:
         if: always() 
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-results
+          name: unit-test-results-${{ matrix.runner }}  # Different name per runner
           path: artifacts/test-results/*.xml
