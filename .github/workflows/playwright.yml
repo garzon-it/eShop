@@ -53,8 +53,26 @@ jobs:
         export PATH="$PATH:$HOME/.dotnet/tools"
         dotnet linux-dev-certs install
     
-    - name: Install Playwright Browsers with system dependencies
-      run: npx playwright install --with-deps chromium
+    - name: Install system dependencies for Playwright
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libatk1.0-0 \
+          libatk-bridge2.0-0 \
+          libcups2 \
+          libatspi2.0-0 \
+          libxcomposite1 \
+          libxdamage1 \
+          libxfixes3 \
+          libxrandr2 \
+          libgbm1 \
+          libxkbcommon0 \
+          libpango-1.0-0 \
+          libcairo2 \
+          libasound2t64
+
+    - name: Install Playwright Browsers
+      run: npx playwright install chromium
     
     - name: Debug curl server
       run: |
