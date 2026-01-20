@@ -104,6 +104,7 @@ jobs:
         chmod +x run_all.sh
 
         export LOG_PATH="artifacts/monitoring/monitor-internal-${{ matrix.runner }}.log"
+        export JSON_OUTPUT="artifacts/monitoring/metrics-${{ matrix.runner }}.json"
         stdbuf -oL -eL ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh" \
           | tee "artifacts/monitoring/pipeline-monitor-${{ matrix.runner }}.log"
       env:
@@ -111,7 +112,6 @@ jobs:
         USERNAME1: bob
         PASSWORD: Pass123$
         DEBUG: pw:webserver*
-
 
     - name: Upload monitoring logs
       uses: actions/upload-artifact@v4
