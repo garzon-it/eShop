@@ -51,9 +51,10 @@ jobs:
 
     - name: Install Pipeline Monitor
       run: |
-        curl -fsSL https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/install.sh | bash || true
-        python3 -m pip install --user psutil
+        curl -fsSL https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/install.sh | bash
+        python3 -m pip install --user --upgrade psutil
         python3 ~/pipeline-monitor/monitor_pipeline.py --help
+
 
     - name: Install .NET HTTPS Development Certificate
       run: |
@@ -84,30 +85,25 @@ jobs:
         echo "Testing with curl..."
         curl -vk https://localhost:19888/ || true
 
-    # Option A: Monitor the whole "pipeline workload" in one monitored step
     - name: Run whole pipeline workload with monitoring (npm + browsers + tests)
       run: |
         set -euo pipefail
-
         mkdir -p artifacts/monitoring
 
         cat > run_all.sh <<'SH'
         #!/usr/bin/env bash
         set -euo pipefail
-
         echo "==== Phase 1: npm ci ===="
         npm ci
-
         echo "==== Phase 2: install Playwright browsers ===="
         npx playwright install chromium
-
         echo "==== Phase 3: run Playwright tests ===="
         npx playwright test
         SH
 
         chmod +x run_all.sh
 
-        ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh" | tee "artifacts/monitoring/pipeline-monitor-${{ matrix.runner }}.log"
+        stdbuf -oL -eL ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh" | tee "artifacts/monitoring/pipeline-monitor-${{ matrix.runner }}.log"
       env:
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
