@@ -54,7 +54,10 @@ jobs:
 
     - name: Install Pipeline Monitor
       run: |
-        curl -fsSL https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/install.sh | bash
+        curl -fsSL https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/install.sh | bash || true
+        python3 -m pip install --user psutil
+        python3 ~/pipeline-monitor/monitor_pipeline.py --help
+
 
     - name: Install .NET HTTPS Development Certificate
       run: |
