@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         runner: [self-hosted, ubuntu-latest]  # Change to [ubuntu-latest] as needed
-    
+
     steps:
     - uses: actions/checkout@v4
 
@@ -41,7 +41,7 @@ jobs:
     - name: Setup Python (for Pipeline Monitor)
       uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
+        python-version: '3.11'
 
     - name: Add .NET to PATH
       run: |
@@ -49,15 +49,11 @@ jobs:
         echo "${{ runner.temp }}/.dotnet/tools" >> $GITHUB_PATH
         echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
-    - name: Install npm dependencies
-      run: npm ci
-
     - name: Install Pipeline Monitor
       run: |
         curl -fsSL https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/install.sh | bash || true
         python3 -m pip install --user psutil
         python3 ~/pipeline-monitor/monitor_pipeline.py --help
-
 
     - name: Install .NET HTTPS Development Certificate
       run: |
@@ -83,18 +79,35 @@ jobs:
           libcairo2 \
           libasound2t64
 
-    - name: Install Playwright Browsers
-      run: npx playwright install chromium
-
     - name: Debug curl server
       run: |
         echo "Testing with curl..."
         curl -vk https://localhost:19888/ || true
 
-    - name: Run Playwright tests (with monitoring)
+    # Option A: Monitor the whole "pipeline workload" in one monitored step
+    - name: Run whole pipeline workload with monitoring (npm + browsers + tests)
       run: |
+        set -euo pipefail
+
         mkdir -p artifacts/monitoring
-        ~/pipeline-monitor/run_with_monitoring.sh "npx playwright test" | tee artifacts/monitoring/pipeline-monitor-${{ matrix.runner }}.log
+
+        cat > run_all.sh <<'SH'
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        echo "==== Phase 1: npm ci ===="
+        npm ci
+
+        echo "==== Phase 2: install Playwright browsers ===="
+        npx playwright install chromium
+
+        echo "==== Phase 3: run Playwright tests ===="
+        npx playwright test
+        SH
+
+        chmod +x run_all.sh
+
+        ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh" | tee "artifacts/monitoring/pipeline-monitor-${{ matrix.runner }}.log"
       env:
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
