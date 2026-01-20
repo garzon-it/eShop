@@ -85,7 +85,7 @@ jobs:
         echo "Testing with curl..."
         curl -vk https://localhost:19888/ || true
 
-    - name: Run whole pipeline workload with monitoring (npm + browsers + tests)
+    - name: Run whole pipeline workload with monitoring (npm + browsers + tests) 
       run: |
         set -euo pipefail
         mkdir -p artifacts/monitoring
