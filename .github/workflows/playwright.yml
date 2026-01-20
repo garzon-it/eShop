@@ -25,34 +25,43 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         global-json-file: global.json
       env:
         DOTNET_INSTALL_DIR: ${{ runner.temp }}/.dotnet
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: lts/*
-    
+
+    - name: Setup Python (for Pipeline Monitor)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
     - name: Add .NET to PATH
       run: |
         echo "${{ runner.temp }}/.dotnet" >> $GITHUB_PATH
         echo "${{ runner.temp }}/.dotnet/tools" >> $GITHUB_PATH
         echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-    
+
     - name: Install npm dependencies
       run: npm ci
-    
+
+    - name: Install Pipeline Monitor
+      run: |
+        curl -fsSL https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/install.sh | bash
+
     - name: Install .NET HTTPS Development Certificate
       run: |
         dotnet tool update -g linux-dev-certs
         export PATH="$PATH:$HOME/.dotnet/tools"
         dotnet linux-dev-certs install || true
-    
+
     - name: Install system dependencies for Playwright
       run: |
         sudo apt-get update
@@ -73,30 +82,25 @@ jobs:
 
     - name: Install Playwright Browsers
       run: npx playwright install chromium
-    
+
     - name: Debug curl server
       run: |
         echo "Testing with curl..."
         curl -vk https://localhost:19888/ || true
-    
-    - name: Run Playwright tests
-      run: npx playwright test
+
+    - name: Run Playwright tests (with monitoring)
+      run: |
+        mkdir -p artifacts/monitoring
+        ~/pipeline-monitor/run_with_monitoring.sh "npx playwright test" | tee artifacts/monitoring/pipeline-monitor-${{ matrix.runner }}.log
       env:
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
         PASSWORD: Pass123$
         DEBUG: pw:webserver*
-    
-    - name: Upload Playwright report
+
+    - name: Upload monitoring logs
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: playwright-report-${{ matrix.runner }}
-        path: playwright-report/
-    
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: e2e-junit-${{ matrix.runner }}
-        path: artifacts/test-results/e2e-results.xml
+        name: pipeline-monitor-${{ matrix.runner }}
+        path: artifacts/monitoring/
