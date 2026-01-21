@@ -108,6 +108,7 @@ jobs:
         stdbuf -oL -eL ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh" \
           | tee "artifacts/monitoring/pipeline-monitor-${{ matrix.runner }}.log"
       env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
         PASSWORD: Pass123$
