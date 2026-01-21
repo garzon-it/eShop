@@ -168,11 +168,12 @@ jobs:
               json.dump(out, f, indent=2)
 
           for row in jobs_out:
-              d = row["duration_seconds"]
+              d = row.get("duration_seconds")
+              name = row.get("job_name")
               if d is None:
-                  print(f"{row['job_name']}: duration unavailable")
+                  print("{}: duration unavailable".format(name))
               else:
-                  print(f"{row['job_name']}: {d:.1f}s")
+                  print("{}: {:.1f}s".format(name, d))
           '
 
       - name: Upload durations artifact
