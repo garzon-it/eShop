@@ -139,7 +139,7 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/jobs?per_page=100" \
-          | python3 - <<'PY'
+          | python3 -c '
           import sys, json, datetime
 
           def parse_iso(s):
@@ -154,7 +154,6 @@ jobs:
               started = parse_iso(j.get("started_at"))
               completed = parse_iso(j.get("completed_at"))
               dur = (completed - started).total_seconds() if started and completed else None
-
               jobs_out.append({
                   "job_name": j.get("name"),
                   "conclusion": j.get("conclusion"),
@@ -168,14 +167,13 @@ jobs:
           with open("job_durations.json", "w", encoding="utf-8") as f:
               json.dump(out, f, indent=2)
 
-          # tiny console summary (useful when checking runs)
           for row in jobs_out:
               d = row["duration_seconds"]
               if d is None:
-                  print(f'{row["job_name"]}: duration unavailable')
+                  print(f"{row['job_name']}: duration unavailable")
               else:
-                  print(f'{row["job_name"]}: {d:.1f}s')
-          PY
+                  print(f"{row['job_name']}: {d:.1f}s")
+          '
 
       - name: Upload durations artifact
         uses: actions/upload-artifact@v4
