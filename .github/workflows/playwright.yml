@@ -142,58 +142,9 @@ jobs:
       contents: read
 
     steps:
-      - name: Fetch jobs and write durations
+      - name: Fetch job durations
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-
-          curl -fsSL \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/jobs?per_page=100" \
-          | python3 -c '
-          import sys, json, datetime
-
-          def parse_iso(s):
-              if not s:
-                  return None
-              return datetime.datetime.fromisoformat(s.replace("Z", "+00:00"))
-
-          data = json.load(sys.stdin)
-
-          jobs_out = []
-          for j in data.get("jobs", []):
-              started = parse_iso(j.get("started_at"))
-              completed = parse_iso(j.get("completed_at"))
-              dur = (completed - started).total_seconds() if started and completed else None
-              jobs_out.append({
-                  "job_name": j.get("name"),
-                  "conclusion": j.get("conclusion"),
-                  "started_at": j.get("started_at"),
-                  "completed_at": j.get("completed_at"),
-                  "duration_seconds": dur,
-              })
-
-          out = {"jobs": jobs_out}
-
-          with open("job_durations.json", "w", encoding="utf-8") as f:
-              json.dump(out, f, indent=2)
-
-          for row in jobs_out:
-              d = row.get("duration_seconds")
-              name = row.get("job_name")
-              if d is None:
-                  print("{}: duration unavailable".format(name))
-              else:
-                  print("{}: {:.1f}s".format(name, d))
-          '
-
-      - name: Upload durations artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: job-durations
-          path: job_durations.json
+          python3 ~/pipeline-monitor/ci_job_durations_github.py \
+            --output artifacts/monitoring/job_durations.json
