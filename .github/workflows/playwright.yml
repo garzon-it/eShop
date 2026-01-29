@@ -146,5 +146,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python3 ~/pipeline-monitor/ci_job_durations_github.py \
+          set -euo pipefail
+          mkdir -p artifacts/monitoring
+
+          curl -fsSL \
+            https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/ci_job_durations_github.py \
+            -o ci_job_durations_github.py
+
+          python3 ci_job_durations_github.py \
             --output artifacts/monitoring/job_durations.json
+
+      - name: Upload job durations
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: job-durations
+          path: artifacts/monitoring/job_durations.json
