@@ -87,6 +87,8 @@ jobs:
         PIPELINE_COMPONENT: eShop
         PIPELINE_STAGE: e2e
 
+        MONITOR_DEBUG: "1"
+
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
         PASSWORD: Pass123$
@@ -115,7 +117,6 @@ jobs:
         export LOG_PATH="artifacts/monitoring/monitor-${{ matrix.runner }}.log"
         export JSON_OUTPUT="artifacts/monitoring/monitor_metrics-${{ matrix.runner }}.json"
         export INTERVAL="1"
-        export MONITOR_DEBUG=1
 
         ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh"
 
