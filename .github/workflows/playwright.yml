@@ -21,7 +21,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        runner: [self-hosted, ubuntu-latest]  # Change to [ubuntu-latest] as needed
+        runner: [self-hosted, ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v4
@@ -82,10 +82,23 @@ jobs:
         echo "Testing with curl..."
         curl -vk https://localhost:19888/ || true
 
-    - name: Run whole pipeline workload with monitoring (npm + browsers + tests) 
+    - name: Run workload with monitoring (npm + browsers + tests)
+      env:
+        PIPELINE_COMPONENT: eShop
+        PIPELINE_STAGE: e2e
+
+        ESHOP_USE_HTTP_ENDPOINTS: 1
+        USERNAME1: bob
+        PASSWORD: Pass123$
+        DEBUG: pw:webserver*
       run: |
         set -euo pipefail
         mkdir -p artifacts/monitoring
+
+        python3 ~/pipeline-monitor/ci_context_github.py \
+          --output artifacts/monitoring/run_context.json
+
+        export RUN_CONTEXT_PATH="artifacts/monitoring/run_context.json"
 
         cat > run_all.sh <<'SH'
         #!/usr/bin/env bash
@@ -97,26 +110,26 @@ jobs:
         echo "==== Phase 3: run Playwright tests ===="
         npx playwright test
         SH
-
         chmod +x run_all.sh
 
-        export LOG_PATH="artifacts/monitoring/monitor-internal-${{ matrix.runner }}.log"
-        export JSON_OUTPUT="artifacts/monitoring/metrics-${{ matrix.runner }}.json"
-        stdbuf -oL -eL ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh" \
-          | tee "artifacts/monitoring/pipeline-monitor-${{ matrix.runner }}.log"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        ESHOP_USE_HTTP_ENDPOINTS: 1
-        USERNAME1: bob
-        PASSWORD: Pass123$
-        DEBUG: pw:webserver*
+        export LOG_PATH="artifacts/monitoring/monitor-${{ matrix.runner }}.log"
+        export JSON_OUTPUT="artifacts/monitoring/monitor_metrics-${{ matrix.runner }}.json"
+        export INTERVAL="1"
 
-    - name: Upload monitoring logs
+        ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh"
+
+        python3 ~/pipeline-monitor/build_run_record.py \
+          --context artifacts/monitoring/run_context.json \
+          --monitor "artifacts/monitoring/monitor_metrics-${{ matrix.runner }}.json" \
+          --output "artifacts/monitoring/run_record-${{ matrix.runner }}.json"
+
+    - name: Upload monitoring artifacts
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: pipeline-monitor-${{ matrix.runner }}
         path: artifacts/monitoring/
+
   durations:
     name: Fetch job durations
     runs-on: ubuntu-latest
