@@ -120,11 +120,6 @@ jobs:
 
         ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh"
 
-        python3 ~/pipeline-monitor/build_run_record.py \
-          --context artifacts/monitoring/run_context.json \
-          --monitor "artifacts/monitoring/monitor_metrics-${{ matrix.runner }}.json" \
-          --output "artifacts/monitoring/run_record-${{ matrix.runner }}.json"
-
     - name: Upload monitoring artifacts
       uses: actions/upload-artifact@v4
       if: always()
@@ -156,9 +151,35 @@ jobs:
           python3 ci_job_durations_github.py \
             --output artifacts/monitoring/job_durations.json
 
-      - name: Upload job durations
+      - name: Download monitoring artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pipeline-monitor-*
+          path: artifacts/monitoring/
+          merge-multiple: true
+
+      - name: Build run records
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/build_run_record.py \
+            -o build_run_record.py
+
+          for runner in ubuntu-latest self-hosted; do
+            mon="artifacts/monitoring/monitor_metrics-${runner}.json"
+            if [ -f "$mon" ]; then
+              python3 build_run_record.py \
+                --context artifacts/monitoring/run_context.json \
+                --monitor "$mon" \
+                --durations artifacts/monitoring/job_durations.json \
+                --job-name "e2e-test (${runner})" \
+                --output "artifacts/monitoring/run_record-${runner}.json"
+            fi
+          done
+
+      - name: Upload pipeline results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: job-durations
-          path: artifacts/monitoring/job_durations.json
+          name: pipeline-results
+          path: artifacts/monitoring/
