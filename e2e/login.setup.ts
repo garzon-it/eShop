@@ -10,10 +10,20 @@ setup('Login', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Ready for a new adventure?' })).toBeVisible();
 
   await Promise.all([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30_000 }),
+    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => null),
     page.getByRole('link', { name: 'Sign in' }).click(),
   ]);
-  await expect(page.getByPlaceholder('Username')).toBeVisible({ timeout: 30_000 });
+
+  console.log('After sign-in URL:', page.url());
+
+  try {
+    await expect(page.getByPlaceholder('Username')).toBeVisible({ timeout: 30_000 });
+  } catch (e) {
+    console.log('FAIL URL:', page.url());
+    await page.screenshot({ path: 'login-failure.png', fullPage: true });
+    throw e;
+  }
+
 
   await page.getByPlaceholder('Username').fill(process.env.USERNAME1!);
   await page.getByPlaceholder('Password').fill(process.env.PASSWORD!);
