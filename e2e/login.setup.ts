@@ -9,7 +9,10 @@ setup('Login', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Ready for a new adventure?' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Sign in' }).click();
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30_000 }),
+    page.getByRole('link', { name: 'Sign in' }).click(),
+  ]);
   await expect(page.getByPlaceholder('Username')).toBeVisible({ timeout: 30_000 });
 
   await page.getByPlaceholder('Username').fill(process.env.USERNAME1!);
