@@ -102,23 +102,22 @@ jobs:
 
         export RUN_CONTEXT_PATH="artifacts/monitoring/run_context.json"
 
-        cat > run_all.sh <<'SH'
-        #!/usr/bin/env bash
-        set -euo pipefail
-        echo "==== Phase 1: npm ci ===="
-        npm ci
-        echo "==== Phase 2: install Playwright browsers ===="
-        npx playwright install chromium
-        echo "==== Phase 3: run Playwright tests ===="
-        npx playwright test
-        SH
-        chmod +x run_all.sh
+        cat > phases.json <<'JSON'
+        [
+          {"name": "npm-install",           "command": "npm ci"},
+          {"name": "playwright-browsers",   "command": "npx playwright install chromium"},
+          {"name": "playwright-tests",      "command": "npx playwright test"}
+        ]
+        JSON
+
+        TRACE_OUT="artifacts/monitoring/trace-${{ matrix.runner }}.json"
 
         export LOG_PATH="artifacts/monitoring/monitor-${{ matrix.runner }}.log"
         export JSON_OUTPUT="artifacts/monitoring/monitor_metrics-${{ matrix.runner }}.json"
         export INTERVAL="1"
 
-        ~/pipeline-monitor/run_with_monitoring.sh "./run_all.sh"
+        ~/pipeline-monitor/run_with_monitoring.sh \
+          "python3 ~/pipeline-monitor/traced_run.py --phases phases.json --output ${TRACE_OUT}"
 
     - name: Upload monitoring artifacts
       uses: actions/upload-artifact@v4
@@ -168,11 +167,18 @@ jobs:
           for runner in ubuntu-latest self-hosted; do
             mon="artifacts/monitoring/monitor_metrics-${runner}.json"
             if [ -f "$mon" ]; then
+              TRACE_ARGS=""
+              trace_file="artifacts/monitoring/trace-${runner}.json"
+              if [ -f "$trace_file" ]; then
+                TRACE_ARGS="--trace ${trace_file}"
+              fi
+
               python3 build_run_record.py \
                 --context artifacts/monitoring/run_context.json \
                 --monitor "$mon" \
                 --durations artifacts/monitoring/job_durations.json \
                 --job-name "e2e-test (${runner})" \
+                $TRACE_ARGS \
                 --output "artifacts/monitoring/run_record-${runner}.json"
             fi
           done
