@@ -117,7 +117,7 @@ jobs:
         export INTERVAL="1"
 
         ~/pipeline-monitor/run_with_monitoring.sh \
-          "python3 ~/pipeline-monitor/traced_run.py --phases phases.json --output ${TRACE_OUT}"
+          "~/pipeline-monitor/.venv/bin/python ~/pipeline-monitor/traced_run.py --phases phases.json --output ${TRACE_OUT}"
 
     - name: Upload monitoring artifacts
       uses: actions/upload-artifact@v4
