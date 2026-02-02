@@ -16,17 +16,22 @@ setup('Login', async ({ page }) => {
   // Use role-based locator for the sign-in link.
   await page.getByRole('link', { name: 'Sign in' }).click();
 
+  // Assert the login route and the login form are ready.
   await expect(page).toHaveURL(/\/user\/login/i, { timeout: 30_000 });
-  await expect(page.getByRole('heading', { name: 'Ready for a new adventure?' }))
-    .toBeHidden({ timeout: 30_000 });
 
-  await expect(page.getByRole('button', { name: 'Login' }))
-    .toBeVisible({ timeout: 30_000 });
+  const username = page.getByPlaceholder('Username');
+  const password = page.getByPlaceholder('Password');
+  const loginButton = page.getByRole('button', { name: 'Login' });
 
-  await page.getByPlaceholder('Username').fill(process.env.USERNAME1);
-  await page.getByPlaceholder('Password').fill(process.env.PASSWORD);
-  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(username).toBeVisible({ timeout: 30_000 });
+  await expect(password).toBeVisible({ timeout: 30_000 });
+  await expect(loginButton).toBeEnabled({ timeout: 30_000 });
 
+  await username.fill(process.env.USERNAME1!);
+  await password.fill(process.env.PASSWORD!);
+  await loginButton.click();
+
+  // Verify we're back on the home page (or post-login landing page).
   await expect(page.getByRole('heading', { name: 'Ready for a new adventure?' }))
     .toBeVisible({ timeout: 30_000 });
 
