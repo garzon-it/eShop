@@ -111,14 +111,13 @@ jobs:
         JSON
 
         TRACE_OUT="artifacts/monitoring/trace-${{ matrix.runner }}.json"
-        LOG_DIR="artifacts/monitoring/logs-${{ matrix.runner }}"
 
         export LOG_PATH="artifacts/monitoring/monitor-${{ matrix.runner }}.log"
         export JSON_OUTPUT="artifacts/monitoring/monitor_metrics-${{ matrix.runner }}.json"
         export INTERVAL="1"
 
         ~/pipeline-monitor/run_with_monitoring.sh \
-          "~/pipeline-monitor/.venv/bin/python ~/pipeline-monitor/traced_run.py --phases phases.json --output ${TRACE_OUT} --log-dir ${LOG_DIR}"
+          "~/pipeline-monitor/.venv/bin/python ~/pipeline-monitor/traced_run.py --phases phases.json --output ${TRACE_OUT}"
 
     - name: Upload monitoring artifacts
       uses: actions/upload-artifact@v4
@@ -194,6 +193,4 @@ jobs:
         if: always()
         with:
           name: pipeline-results
-          path: |
-            artifacts/monitoring/run_record-*.json
-            artifacts/monitoring/logs-*/
+          path: artifacts/monitoring/run_record-*.json
