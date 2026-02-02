@@ -117,7 +117,7 @@ jobs:
         export INTERVAL="1"
 
         ~/pipeline-monitor/run_with_monitoring.sh \
-          "~/pipeline-monitor/.venv/bin/python ~/pipeline-monitor/traced_run.py --phases phases.json --output ${TRACE_OUT}"
+          "~/pipeline-monitor/.venv/bin/python ~/pipeline-monitor/traced_run.py --phases phases.json --output ${TRACE_OUT} --log-dir artifacts/monitoring/logs-${{ matrix.runner }}"
 
     - name: Upload monitoring artifacts
       uses: actions/upload-artifact@v4
@@ -183,6 +183,24 @@ jobs:
             fi
           done
 
+      - name: Prepare Loki logs
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/prepare_loki_logs.py \
+            -o prepare_loki_logs.py
+
+          for runner in ubuntu-latest self-hosted; do
+            log_dir="artifacts/monitoring/logs-${runner}"
+            record="artifacts/monitoring/run_record-${runner}.json"
+            if [ -d "$log_dir" ] && [ -f "$record" ]; then
+              python3 prepare_loki_logs.py \
+                --log-dir "$log_dir" \
+                --run-record "$record" \
+                --output "artifacts/monitoring/loki-push-${runner}.json"
+            fi
+          done
+
       - name: Delete intermediate artifacts
         uses: geekyeggo/delete-artifact@v5
         with:
@@ -193,4 +211,6 @@ jobs:
         if: always()
         with:
           name: pipeline-results
-          path: artifacts/monitoring/run_record-*.json
+          path: |
+            artifacts/monitoring/run_record-*.json
+            artifacts/monitoring/loki-push-*.json
