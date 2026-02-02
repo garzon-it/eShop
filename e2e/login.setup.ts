@@ -13,14 +13,16 @@ setup('Login', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Ready for a new adventure?' }))
     .toBeVisible({ timeout: 30_000 });
 
-  // Use role-based locator for the sign-in link.
-  await page.getByRole('link', { name: 'Sign in' }).click();
+  const signIn = page.getByRole('link', { name: 'Sign in' });
+  await expect(signIn).toBeVisible({ timeout: 30_000 });
+  await signIn.click();
 
-  // Assert the login route and the login form are ready.
+  await page.waitForURL(/\/user\/login/i, { timeout: 30_000 });
   await expect(page).toHaveURL(/\/user\/login/i, { timeout: 30_000 });
 
-  const username = page.getByPlaceholder('Username');
-  const password = page.getByPlaceholder('Password');
+  // Pick the visible inputs
+  const username = page.locator('input[placeholder="Username"]:visible');
+  const password = page.locator('input[placeholder="Password"]:visible');
   const loginButton = page.getByRole('button', { name: 'Login' });
 
   await expect(username).toBeVisible({ timeout: 30_000 });
