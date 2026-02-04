@@ -201,6 +201,14 @@ jobs:
             fi
           done
 
+      - name: Send run records to dashboard
+        env:
+          INGEST_URL: ${{ secrets.DASHBOARD_INGEST_URL }}
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/garzon-it/microservices-testing-dashboard/monitoring/monitoring/send_to_dashboard.py \
+            -o send_to_dashboard.py
+          python3 send_to_dashboard.py artifacts/monitoring/run_record-*.json
+
       - name: Delete intermediate artifacts
         uses: geekyeggo/delete-artifact@v5
         with:
