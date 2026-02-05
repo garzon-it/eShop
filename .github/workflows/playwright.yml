@@ -209,10 +209,10 @@ jobs:
             -o send_to_dashboard.py
           python3 send_to_dashboard.py artifacts/monitoring/run_record-*.json
 
-      - name: Delete intermediate artifacts
-        uses: geekyeggo/delete-artifact@v5
-        with:
-          name: pipeline-monitor-*
+      # - name: Delete intermediate artifacts
+      #   uses: geekyeggo/delete-artifact@v5
+      #   with:
+      #     name: pipeline-monitor-*
 
       - name: Upload pipeline results
         uses: actions/upload-artifact@v4
