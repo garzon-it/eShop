@@ -38,8 +38,8 @@ jobs:
       with:
         python-version: '3.11'
 
-    # OTel logs-only: prepare folders + collector binary + start collector
-    - name: Prepare OTel (logs-only)
+    # OTel: prepare folders + collector binary + start collector
+    - name: Prepare OTel
       run: |
         set -euo pipefail
         mkdir -p artifacts/step-logs artifacts/otel
@@ -51,11 +51,11 @@ jobs:
         tar -xzf otelcol-contrib.tgz otelcol-contrib
         chmod +x otelcol-contrib
 
-    - name: Start OTel Collector (logs-only)
+    - name: Start OTel Collector
       run: |
         set -euo pipefail
         mkdir -p artifacts/otel
-        ./otelcol-contrib --config ci-test-observability/otelcol-ci-logs.yaml \
+        ./otelcol-contrib --config ci-test-observability/otelcol-ci.yaml \
           > artifacts/otel/otelcol-${{ matrix.runner }}.log 2>&1 &
         echo $! > artifacts/otel/otelcol-${{ matrix.runner }}.pid
 
@@ -103,13 +103,14 @@ jobs:
         path: playwright-report/
         retention-days: 30
 
-    # OTel OTLP-JSON + raw captured logs
+    # OTel OTLP-JSON (logs + metrics) + raw captured logs
     - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: otel-logs-${{ matrix.runner }}
+        name: otel-data-${{ matrix.runner }}
         path: |
           artifacts/otel/otel-logs.json
+          artifacts/otel/otel-metrics.json
           artifacts/step-logs/
           artifacts/otel/otelcol-${{ matrix.runner }}.log
         retention-days: 30

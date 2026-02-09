@@ -1,4 +1,12 @@
 receivers:
+  hostmetrics:
+    collection_interval: 500ms
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      network:
+
   filelog:
     include:
       - ${env:GITHUB_WORKSPACE}/artifacts/step-logs/**/*.log
@@ -58,9 +66,20 @@ exporters:
       max_megabytes: 50
       max_backups: 2
 
+  file/metrics:
+    path: ${env:GITHUB_WORKSPACE}/artifacts/otel/otel-metrics.json
+    rotation:
+      max_megabytes: 50
+      max_backups: 2
+
 service:
   pipelines:
     logs:
       receivers: [filelog]
       processors: [resource, batch]
       exporters: [file]
+
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [file/metrics]

@@ -5,6 +5,7 @@ import shlex
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 
@@ -25,6 +26,8 @@ def run_and_tee(cmd, stdout_path, stderr_path, step_name):
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path.parent.mkdir(parents=True, exist_ok=True)
 
+    t0 = time.monotonic()
+
     with stdout_path.open("wb") as out_f, stderr_path.open("wb") as err_f:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -35,7 +38,17 @@ def run_and_tee(cmd, stdout_path, stderr_path, step_name):
         t_out.join()
         t_err.join()
 
-        return p.wait()
+        exit_code = p.wait()
+
+    duration = time.monotonic() - t0
+    summary = f"[ci.step={step_name}] __STEP_RESULT__ duration_seconds={duration:.2f} exit_code={exit_code}\n".encode()
+    with stdout_path.open("ab") as out_f:
+        out_f.write(summary)
+        out_f.flush()
+    sys.stdout.buffer.write(summary)
+    sys.stdout.buffer.flush()
+
+    return exit_code
 
 def main():
     ap = argparse.ArgumentParser(
