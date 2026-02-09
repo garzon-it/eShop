@@ -83,12 +83,17 @@ exporters:
       max_megabytes: 50
       max_backups: 2
 
+  otlphttp/grafana-logs:
+    endpoint: "https://insight-logs-prod-eu-west-4.grafana.net/otlp"
+    headers:
+      Authorization: "Basic MTUyMDk0Njpjb25maWd1cmVk"
+
 service:
   pipelines:
     logs:
       receivers: [filelog]
       processors: [resource, batch]
-      exporters: [file]
+      exporters: [file, otlphttp/grafana-logs]
 
     metrics:
       receivers: [hostmetrics]
