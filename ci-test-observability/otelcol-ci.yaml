@@ -29,6 +29,11 @@ receivers:
         from: attributes.ci_step
         to: attributes["ci.step.name"]
 
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
 processors:
   resource:
     attributes:
@@ -72,6 +77,12 @@ exporters:
       max_megabytes: 50
       max_backups: 2
 
+  file/traces:
+    path: ${env:GITHUB_WORKSPACE}/artifacts/otel/otel-traces.json
+    rotation:
+      max_megabytes: 50
+      max_backups: 2
+
 service:
   pipelines:
     logs:
@@ -83,3 +94,8 @@ service:
       receivers: [hostmetrics]
       processors: [resource, batch]
       exporters: [file/metrics]
+
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [file/traces]

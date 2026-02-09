@@ -38,6 +38,9 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Install Python OTel dependencies
+      run: pip install -r ci-test-observability/requirements.txt
+
     # OTel: prepare folders + collector binary + start collector
     - name: Prepare OTel
       run: |
@@ -59,6 +62,9 @@ jobs:
           > artifacts/otel/otelcol-${{ matrix.runner }}.log 2>&1 &
         echo $! > artifacts/otel/otelcol-${{ matrix.runner }}.pid
 
+    - name: Initialize trace context
+      run: python3 ci-test-observability/ciwrap_logs.py --init-trace
+
     - name: Install dependencies
       run: python3 ci-test-observability/ciwrap_logs.py --name "Install dependencies" -- npm ci
 
@@ -76,6 +82,10 @@ jobs:
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
         PASSWORD: Pass123$
+
+    - name: Finish trace (export job span)
+      if: always()
+      run: python3 ci-test-observability/ciwrap_logs.py --finish-trace
 
     - name: Flush OTel pipeline
       if: always()
@@ -111,6 +121,7 @@ jobs:
         path: |
           artifacts/otel/otel-logs.json
           artifacts/otel/otel-metrics.json
+          artifacts/otel/otel-traces.json
           artifacts/step-logs/
           artifacts/otel/otelcol-${{ matrix.runner }}.log
         retention-days: 30

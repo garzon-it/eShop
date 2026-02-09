@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
+"""Wrap a CI command: capture stdout/stderr to log files and export a trace span.
+
+Usage:
+  ciwrap_logs.py --name "Step name" -- <command>   # wrap a command
+  ciwrap_logs.py --init-trace                      # start trace context
+  ciwrap_logs.py --finish-trace                    # export job span
+"""
+
 import argparse
 import os
-import shlex
 import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
+
+import ciwrap_traces as traces
 
 
 def _reader(stream, log_file, prefix, console):
@@ -21,6 +30,7 @@ def _reader(stream, log_file, prefix, console):
 
 
 def run_and_tee(cmd, stdout_path, stderr_path, step_name):
+    """Run *cmd*, tee its output to log files with a [ci.step=...] prefix."""
     prefix = f"[ci.step={step_name}] ".encode()
 
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,25 +58,13 @@ def run_and_tee(cmd, stdout_path, stderr_path, step_name):
     sys.stdout.buffer.write(summary)
     sys.stdout.buffer.flush()
 
-    return exit_code
+    return exit_code, duration
 
-def main():
-    ap = argparse.ArgumentParser(
-        description="Wrap a CI command and tag stdout/stderr with ci.step.name"
-    )
-    ap.add_argument("--name", required=True, help="CI step name")
-    ap.add_argument(
-        "--log-dir",
-        default="",
-        help="Override log dir (default: $GITHUB_WORKSPACE/artifacts/step-logs)",
-    )
-    ap.add_argument("command", nargs=argparse.REMAINDER)
-    args = ap.parse_args()
 
-    if not args.command:
-        print("Usage: ciwrap_logs.py --name \"Step name\" -- <command>", file=sys.stderr)
-        return 2
+# CLI dispatch
 
+def cmd_run_step(args):
+    """Run a wrapped command, capture logs, and export a step span."""
     workspace = os.environ.get("GITHUB_WORKSPACE", os.getcwd())
     log_dir = Path(args.log_dir) if args.log_dir else Path(workspace) / "artifacts" / "step-logs"
 
@@ -78,7 +76,43 @@ def main():
     if cmd[0] == "--":
         cmd = cmd[1:]
 
-    return run_and_tee(cmd, stdout_path, stderr_path, args.name)
+    start_ns = time.time_ns()
+    exit_code, duration = run_and_tee(cmd, stdout_path, stderr_path, args.name)
+    end_ns = time.time_ns()
+
+    traces.export_step_span(args.name, start_ns, end_ns, exit_code, duration)
+
+    return exit_code
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--name", default=None, help="CI step name")
+    ap.add_argument("--log-dir", default="",
+                    help="Override log dir (default: $GITHUB_WORKSPACE/artifacts/step-logs)")
+    ap.add_argument("--init-trace", action="store_true",
+                    help="Initialize trace context (write trace-context.json)")
+    ap.add_argument("--finish-trace", action="store_true",
+                    help="Finalize trace and export job span")
+    ap.add_argument("command", nargs=argparse.REMAINDER)
+    args = ap.parse_args()
+
+    if args.init_trace:
+        return traces.init_trace()
+
+    if args.finish_trace:
+        return traces.finish_trace()
+
+    if not args.name:
+        ap.print_usage(sys.stderr)
+        return 2
+
+    if not args.command:
+        print("Usage: ciwrap_logs.py --name \"Step name\" -- <command>", file=sys.stderr)
+        return 2
+
+    return cmd_run_step(args)
+
 
 if __name__ == "__main__":
     sys.exit(main())
