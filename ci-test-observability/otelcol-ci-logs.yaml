@@ -7,13 +7,19 @@ receivers:
     operators:
       # Each line starts with: [ci.step=<name>]
       - type: regex_parser
-        regex: '^\[ci\.step=(?P<ci_step>[^\]]+)\]\s*(?P<body>.*)$'
+        regex: '^\[ci\.step=(?P<ci_step>[^\]]+)\]\s*(?P<log_body>.*)$'
         parse_from: body
-        on_error: send # on_error: drop # ! Use this
+        on_error: drop
 
+      # Replace raw body with the actual log content (without the prefix)
+      - type: move
+        from: attributes.log_body
+        to: body
+
+      # avoid nested kvlist
       - type: move
         from: attributes.ci_step
-        to: attributes.ci.step.name
+        to: attributes["ci.step.name"]
 
 processors:
   resource:
