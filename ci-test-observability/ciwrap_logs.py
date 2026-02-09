@@ -45,7 +45,7 @@ def main():
     ap.add_argument(
         "--log-dir",
         default="",
-        help="Override log dir (default: $GITHUB_WORKSPACE/artifacts/logs)",
+        help="Override log dir (default: $GITHUB_WORKSPACE/artifacts/step-logs)",
     )
     ap.add_argument("command", nargs=argparse.REMAINDER)
     args = ap.parse_args()

@@ -3,12 +3,13 @@ receivers:
     include:
       - ${env:GITHUB_WORKSPACE}/artifacts/step-logs/**/*.log
     start_at: beginning
+    poll_interval: 200ms
     operators:
       # Each line starts with: [ci.step=<name>]
       - type: regex_parser
-        regex: '^\[ci\.step=(?P<ci_step>[^\]]+)\]\s(?P<body>.*)$'
+        regex: '^\[ci\.step=(?P<ci_step>[^\]]+)\]\s*(?P<body>.*)$'
         parse_from: body
-        on_error: drop
+        on_error: send # on_error: drop # ! Use this
 
       - type: move
         from: attributes.ci_step
