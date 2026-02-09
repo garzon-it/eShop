@@ -16,6 +16,33 @@ receivers:
         to: attributes.ci.step.name
 
 processors:
+  resource:
+    attributes:
+      - key: ci.provider
+        value: "github_actions"
+        action: upsert
+      - key: ci.run.id
+        value: ${env:GITHUB_RUN_ID}
+        action: upsert
+      - key: ci.run.number
+        value: ${env:GITHUB_RUN_NUMBER}
+        action: upsert
+      - key: ci.workflow
+        value: ${env:GITHUB_WORKFLOW}
+        action: upsert
+      - key: ci.job
+        value: ${env:GITHUB_JOB}
+        action: upsert
+      - key: vcs.commit.sha
+        value: ${env:GITHUB_SHA}
+        action: upsert
+      - key: vcs.ref
+        value: ${env:GITHUB_REF}
+        action: upsert
+      - key: vcs.repository
+        value: ${env:GITHUB_REPOSITORY}
+        action: upsert
+
   batch: {}
 
 exporters:
@@ -29,5 +56,5 @@ service:
   pipelines:
     logs:
       receivers: [filelog]
-      processors: [batch]
+      processors: [resource, batch]
       exporters: [file]
