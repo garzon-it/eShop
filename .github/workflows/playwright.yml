@@ -74,6 +74,23 @@ jobs:
         USERNAME1: bob
         PASSWORD: Pass123$
 
+    - name: Wait for OTel ingestion to finish
+      if: always()
+      run: |
+        set -euo pipefail
+        MARK="__CIWRAP_DONE__"
+
+        for i in {1..30}; do
+          if grep -q "$MARK" artifacts/otel/otel-logs.json; then
+            echo "OTel ingestion complete"
+            exit 0
+          fi
+          sleep 0.2
+        done
+
+        echo "Timed out waiting for OTel ingestion" >&2
+        exit 1
+        
     - name: Stop OTel Collector
       if: always()
       run: |
