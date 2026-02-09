@@ -29,24 +29,72 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install .NET HTTPS Development Certificate
-      # if: matrix.os == 'ubuntu-latest'
+
+    - name: Setup Python (for ciwrap)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    # OTel logs-only: prepare folders + collector binary + start collector
+    - name: Prepare OTel (logs-only)
       run: |
-        dotnet tool update -g linux-dev-certs
-        dotnet linux-dev-certs install
+        set -euo pipefail
+        mkdir -p artifacts/logs artifacts/otel
+
+        # Download otelcol-contrib (Linux).
+        OTEL_VERSION="0.99.0"
+        curl -fsSL -o otelcol-contrib.tgz \
+          "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_linux_amd64.tar.gz"
+        tar -xzf otelcol-contrib.tgz otelcol-contrib
+        chmod +x otelcol-contrib
+
+    - name: Start OTel Collector (logs-only)
+      run: |
+        set -euo pipefail
+        ./otelcol-contrib --config ci-test-observability/otelcol-ci-logs.yaml \
+          > artifacts/logs/otelcol-${{ matrix.runner }}.log 2>&1 &
+        echo $! > artifacts/otel/otelcol-${{ matrix.runner }}.pid
+
+    - name: Install dependencies
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Install dependencies" -- npm ci
+
+    - name: Install .NET HTTPS Development Certificate
+      run: |
+        python3 ci-test-observability/ciwrap_logs.py --name "Install .NET HTTPS Dev Certs - tool update" -- dotnet tool update -g linux-dev-certs
+        python3 ci-test-observability/ciwrap_logs.py --name "Install .NET HTTPS Dev Certs - install" -- dotnet linux-dev-certs install
+
     - name: Install Playwright Browsers
-      run: npx playwright install chromium
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Install Playwright Browsers" -- npx playwright install chromium
+
     - name: Run Playwright tests
-      run: npx playwright test
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Run Playwright tests" -- npx playwright test
       env:
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
         PASSWORD: Pass123$
+
+    - name: Stop OTel Collector
+      if: always()
+      run: |
+        set +e
+        pidfile="artifacts/otel/otelcol-${{ matrix.runner }}.pid"
+        if [ -f "$pidfile" ]; then
+          kill "$(cat "$pidfile")" 2>/dev/null || true
+        fi
+
     - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: playwright-report-${{ matrix.runner }}
         path: playwright-report/
+        retention-days: 30
+
+    # OTel OTLP-JSON + raw captured logs
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: otel-logs-${{ matrix.runner }}
+        path: |
+          artifacts/otel/otel-logs.json
+          artifacts/logs/
         retention-days: 30
