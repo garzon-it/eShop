@@ -55,7 +55,7 @@ def main():
         return 2
 
     workspace = os.environ.get("GITHUB_WORKSPACE", os.getcwd())
-    log_dir = Path(args.log_dir) if args.log_dir else Path(workspace) / "artifacts" / "logs"
+    log_dir = Path(args.log_dir) if args.log_dir else Path(workspace) / "artifacts" / "step-logs"
 
     step_slug = args.name.lower().replace(" ", "_")
     stdout_path = log_dir / f"{step_slug}.stdout.log"

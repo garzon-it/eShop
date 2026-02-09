@@ -51,8 +51,9 @@ jobs:
     - name: Start OTel Collector (logs-only)
       run: |
         set -euo pipefail
+        mkdir -p artifacts/otel
         ./otelcol-contrib --config ci-test-observability/otelcol-ci-logs.yaml \
-          > artifacts/logs/otelcol-${{ matrix.runner }}.log 2>&1 &
+          > artifacts/otel/otelcol-${{ matrix.runner }}.log 2>&1 &
         echo $! > artifacts/otel/otelcol-${{ matrix.runner }}.pid
 
     - name: Install dependencies

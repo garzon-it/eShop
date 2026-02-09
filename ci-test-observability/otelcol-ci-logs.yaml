@@ -1,14 +1,14 @@
 receivers:
   filelog:
     include:
-      - ${env:GITHUB_WORKSPACE}/artifacts/logs/**/*.log
+      - ${env:GITHUB_WORKSPACE}/artifacts/step-logs/**/*.log
     start_at: beginning
-
     operators:
       # Each line starts with: [ci.step=<name>]
       - type: regex_parser
         regex: '^\[ci\.step=(?P<ci_step>[^\]]+)\]\s(?P<body>.*)$'
         parse_from: body
+        on_error: drop
 
       - type: move
         from: attributes.ci_step
