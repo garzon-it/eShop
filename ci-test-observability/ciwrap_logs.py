@@ -4,10 +4,23 @@ import os
 import shlex
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
+
+def _reader(stream, log_file, prefix, console):
+    """Read lines from *stream* and write them to *log_file* and *console*."""
+    for raw in iter(stream.readline, b""):
+        line = prefix + raw
+        log_file.write(line)
+        log_file.flush()
+        console.write(line)
+        console.flush()
+    stream.close()
+
+
 def run_and_tee(cmd, stdout_path, stderr_path, step_name):
-    prefix = f"[ci.step={step_name}] "
+    prefix = f"[ci.step={step_name}] ".encode()
 
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path.parent.mkdir(parents=True, exist_ok=True)
@@ -15,25 +28,12 @@ def run_and_tee(cmd, stdout_path, stderr_path, step_name):
     with stdout_path.open("wb") as out_f, stderr_path.open("wb") as err_f:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        while True:
-            o = p.stdout.readline() if p.stdout else b""
-            e = p.stderr.readline() if p.stderr else b""
-            if not o and not e and p.poll() is not None:
-                break
-
-            if o:
-                line = prefix.encode() + o
-                out_f.write(line)
-                out_f.flush()
-                sys.stdout.buffer.write(line)
-                sys.stdout.buffer.flush()
-
-            if e:
-                line = prefix.encode() + e
-                err_f.write(line)
-                err_f.flush()
-                sys.stderr.buffer.write(line)
-                sys.stderr.buffer.flush()
+        t_out = threading.Thread(target=_reader, args=(p.stdout, out_f, prefix, sys.stdout.buffer))
+        t_err = threading.Thread(target=_reader, args=(p.stderr, err_f, prefix, sys.stderr.buffer))
+        t_out.start()
+        t_err.start()
+        t_out.join()
+        t_err.join()
 
         return p.wait()
 
