@@ -6,6 +6,8 @@ receivers:
       memory:
       disk:
       network:
+      load:
+      filesystem:
 
   filelog:
     include:
