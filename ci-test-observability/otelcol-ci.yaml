@@ -88,6 +88,7 @@ exporters:
     headers:
       Authorization: "Basic MTUyMDk0NjpnbGNfZXlKdklqb2lNVFkyTkRJM05TSXNJbTRpT2lKamFTMTBaWE4wSWl3aWF5STZJak55YnpWUVJHUjBOVFJETVcxUlp6ZFJNRWsxYVRKek5TSXNJbTBpT25zaWNpSTZJbkJ5YjJRdFpYVXRkMlZ6ZEMweUluMTk="
 
+
 service:
   pipelines:
     logs:
