@@ -27,18 +27,19 @@ def _ci_env():
         os.environ.get("GITHUB_RUN_ID", ""),
         os.environ.get("GITHUB_RUN_ATTEMPT", "1"),
         os.environ.get("GITHUB_JOB", ""),
+        os.environ.get("RUNNER_NAME", ""),
     )
 
 
-def _deterministic_trace_id(run_id, run_attempt, job):
+def _deterministic_trace_id(run_id, run_attempt, job, runner):
     """16-byte trace ID from CI env vars."""
-    h = hashlib.sha256(f"{run_id}:{run_attempt}:{job}".encode()).digest()
+    h = hashlib.sha256(f"{run_id}:{run_attempt}:{job}:{runner}".encode()).digest()
     return h[:16]
 
 
-def _deterministic_span_id(run_id, run_attempt, job, suffix="job"):
+def _deterministic_span_id(run_id, run_attempt, job, runner, suffix="job"):
     """8-byte span ID from CI env vars + a distinguishing suffix."""
-    h = hashlib.sha256(f"{run_id}:{run_attempt}:{job}:{suffix}".encode()).digest()
+    h = hashlib.sha256(f"{run_id}:{run_attempt}:{job}:{runner}:{suffix}".encode()).digest()
     return h[:8]
 
 
@@ -92,7 +93,7 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
     from opentelemetry.trace import SpanContext, TraceFlags, SpanKind, NonRecordingSpan, StatusCode
     from opentelemetry import trace as otel_trace
 
-    run_id, run_attempt, job = _ci_env()
+    run_id, run_attempt, job, runner = _ci_env()
     resource = Resource.create({
         "service.name": "ci-observability",
         "ci.provider": "github_actions",
@@ -135,13 +136,13 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
 
 def init_trace():
     """Compute deterministic IDs and write the trace context file."""
-    run_id, run_attempt, job = _ci_env()
+    run_id, run_attempt, job, runner = _ci_env()
     if not run_id or not job:
         print("WARNING: GITHUB_RUN_ID or GITHUB_JOB not set; "
               "trace IDs will be non-deterministic", file=sys.stderr)
 
-    trace_id = _deterministic_trace_id(run_id, run_attempt, job)
-    job_span_id = _deterministic_span_id(run_id, run_attempt, job, "job")
+    trace_id = _deterministic_trace_id(run_id, run_attempt, job, runner)
+    job_span_id = _deterministic_span_id(run_id, run_attempt, job, runner, "job")
 
     ctx_path = _context_path()
     ctx_path.parent.mkdir(parents=True, exist_ok=True)
@@ -194,8 +195,8 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration):
     trace_id = bytes.fromhex(ctx["trace_id"])
     job_span_id = bytes.fromhex(ctx["job_span_id"])
 
-    run_id, run_attempt, job = _ci_env()
-    step_span_id = _deterministic_span_id(run_id, run_attempt, job, step_name)
+    run_id, run_attempt, job, runner = _ci_env()
+    step_span_id = _deterministic_span_id(run_id, run_attempt, job, runner, step_name)
 
     _export_span(
         name=step_name,
