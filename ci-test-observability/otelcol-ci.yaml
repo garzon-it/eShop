@@ -63,6 +63,15 @@ processors:
       - key: vcs.repository
         value: ${env:GITHUB_REPOSITORY}
         action: upsert
+      - key: ci.runner.name
+        value: ${env:RUNNER_NAME}
+        action: upsert
+      - key: ci.runner.os
+        value: ${env:RUNNER_OS}
+        action: upsert
+      - key: ci.runner.environment
+        value: ${env:RUNNER_ENVIRONMENT}
+        action: upsert
 
   batch: {}
 
