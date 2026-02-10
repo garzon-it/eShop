@@ -86,7 +86,7 @@ exporters:
   otlphttp/grafana:
     endpoint: "https://otlp-gateway-prod-eu-west-2.grafana.net/otlp"
     headers:
-      Authorization: "Basic MTUyMDk0NjpnbGNfZXlKdklqb2lNVFkyTkRJM05USXNJbTRpT2lKNWIzVnlMV2R5WVdaaGJtRXRkRzlyWlc0aUxDSnJJam9pYlRCa1psZ3dObUpyUlRRMWNWVTRJaXdpYlNJNmV5SnlJam9pY0hKdlpDMWxkUzEzWlhOMExUSWlmWDA9"
+      Authorization: "Basic%20MTUyMDk0NjpnbGNfZXlKdklqb2lNVFkyTkRJM05TSXNJbTRpT2lKamFTMTBaWE4wSWl3aWF5STZJak55YnpWUVJHUjBOVFJETVcxUlp6ZFJNRWsxYVRKek5TSXNJbTBpT25zaWNpSTZJbkJ5YjJRdFpYVXRkMlZ6ZEMweUluMTk="
 
 service:
   pipelines:
