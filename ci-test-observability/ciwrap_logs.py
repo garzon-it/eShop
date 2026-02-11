@@ -29,9 +29,12 @@ def _reader(stream, log_file, prefix, console):
     stream.close()
 
 
-def run_and_tee(cmd, stdout_path, stderr_path, step_name):
+def run_and_tee(cmd, stdout_path, stderr_path, step_name, trace_id=None, span_id=None):
     """Run *cmd*, tee its output to log files with a [ci.step=...] prefix."""
-    prefix = f"[ci.step={step_name}] ".encode()
+    trace_part = ""
+    if trace_id and span_id:
+        trace_part = f"[trace_id={trace_id}][span_id={span_id}]"
+    prefix = f"[ci.step={step_name}]{trace_part} ".encode()
 
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path.parent.mkdir(parents=True, exist_ok=True)
@@ -51,7 +54,7 @@ def run_and_tee(cmd, stdout_path, stderr_path, step_name):
         exit_code = p.wait()
 
     duration = time.monotonic() - t0
-    summary = f"[ci.step={step_name}] __STEP_RESULT__ duration_seconds={duration:.2f} exit_code={exit_code}\n".encode()
+    summary = f"[ci.step={step_name}]{trace_part} __STEP_RESULT__ duration_seconds={duration:.2f} exit_code={exit_code}\n".encode()
     with stdout_path.open("ab") as out_f:
         out_f.write(summary)
         out_f.flush()
@@ -76,8 +79,10 @@ def cmd_run_step(args):
     if cmd[0] == "--":
         cmd = cmd[1:]
 
+    trace_id, span_id = traces.get_step_ids(args.name)
+
     start_ns = time.time_ns()
-    exit_code, duration = run_and_tee(cmd, stdout_path, stderr_path, args.name)
+    exit_code, duration = run_and_tee(cmd, stdout_path, stderr_path, args.name, trace_id, span_id)
     end_ns = time.time_ns()
 
     traces.export_step_span(args.name, start_ns, end_ns, exit_code, duration)

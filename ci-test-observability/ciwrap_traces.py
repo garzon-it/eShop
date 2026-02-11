@@ -132,7 +132,19 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
     provider.shutdown()
 
 
-# -- Public API (called from ciwrap_logs.py) ---------------------------------
+# Public helpers-------
+
+def get_step_ids(step_name):
+    """Return (trace_id_hex, span_id_hex) for a step, or (None, None) if no context."""
+    ctx = _read_context()
+    if ctx is None:
+        return None, None
+    run_id, run_attempt, job, runner = _ci_env()
+    span_id = _deterministic_span_id(run_id, run_attempt, job, runner, step_name)
+    return ctx["trace_id"], span_id.hex()
+
+
+# Public API (called from ciwrap_logs.py)
 
 def init_trace():
     """Compute deterministic IDs and write the trace context file."""
