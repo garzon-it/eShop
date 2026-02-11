@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Wrap a CI command: capture stdout/stderr to log files and export a trace span.
+"""Wrap a CI command: stream stdout/stderr to console and export as OTLP logs + trace span.
 
 Usage:
   ciwrap_logs.py --name "Step name" -- <command>   # wrap a command
@@ -8,57 +8,91 @@ Usage:
 """
 
 import argparse
-import os
 import subprocess
 import sys
 import threading
 import time
-from pathlib import Path
+
+from opentelemetry._logs import SeverityNumber
+from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+from opentelemetry.sdk._logs import LoggerProvider, LogRecord
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.trace import TraceFlags
 
 import ciwrap_traces as traces
 
 
-def _reader(stream, log_file, prefix, console):
-    """Read lines from *stream* and write them to *log_file* and *console*."""
+def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
+    """Create an OTLP log emitter for a CI step. Returns (emit_fn, shutdown_fn)."""
+    resource = Resource.create({"service.name": "ci-observability"})
+    provider = LoggerProvider(resource=resource)
+    provider.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter()))
+    logger = provider.get_logger("ci-observability")
+
+    trace_id_int = int(trace_id_hex, 16) if trace_id_hex else 0
+    span_id_int = int(span_id_hex, 16) if span_id_hex else 0
+    flags = TraceFlags(TraceFlags.SAMPLED) if trace_id_hex else TraceFlags.DEFAULT
+
+    def emit(body, severity="INFO", extra_attrs=None):
+        sev_num = SeverityNumber.ERROR if severity == "ERROR" else SeverityNumber.INFO
+        attrs = {"ci.step.name": step_name}
+        if extra_attrs:
+            attrs.update(extra_attrs)
+        logger.emit(LogRecord(
+            timestamp=time.time_ns(),
+            trace_id=trace_id_int,
+            span_id=span_id_int,
+            trace_flags=flags,
+            severity_text=severity,
+            severity_number=sev_num,
+            body=body,
+            attributes=attrs,
+        ))
+
+    def shutdown():
+        provider.force_flush()
+        provider.shutdown()
+
+    return emit, shutdown
+
+
+def _reader(stream, console, emit, severity, source):
+    """Read lines from stream, write to console, and emit OTLP log records."""
     for raw in iter(stream.readline, b""):
-        line = prefix + raw
-        log_file.write(line)
-        log_file.flush()
-        console.write(line)
+        console.write(raw)
         console.flush()
+        line = raw.decode("utf-8", errors="replace").rstrip("\n\r")
+        if line:
+            emit(line, severity=severity, extra_attrs={"log.source": source})
     stream.close()
 
 
-def run_and_tee(cmd, stdout_path, stderr_path, step_name, trace_id=None, span_id=None):
-    """Run *cmd*, tee its output to log files with a [ci.step=...] prefix."""
-    trace_part = ""
-    if trace_id and span_id:
-        trace_part = f"[trace_id={trace_id}][span_id={span_id}]"
-    prefix = f"[ci.step={step_name}]{trace_part} ".encode()
-
-    stdout_path.parent.mkdir(parents=True, exist_ok=True)
-    stderr_path.parent.mkdir(parents=True, exist_ok=True)
-
+def run_and_tee(cmd, emit):
+    """Run cmd, stream output to console, and emit each line as an OTLP log record."""
     t0 = time.monotonic()
 
-    with stdout_path.open("wb") as out_f, stderr_path.open("wb") as err_f:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        t_out = threading.Thread(target=_reader, args=(p.stdout, out_f, prefix, sys.stdout.buffer))
-        t_err = threading.Thread(target=_reader, args=(p.stderr, err_f, prefix, sys.stderr.buffer))
-        t_out.start()
-        t_err.start()
-        t_out.join()
-        t_err.join()
+    t_out = threading.Thread(target=_reader,
+                             args=(p.stdout, sys.stdout.buffer, emit, "INFO", "stdout"))
+    t_err = threading.Thread(target=_reader,
+                             args=(p.stderr, sys.stderr.buffer, emit, "ERROR", "stderr"))
+    t_out.start()
+    t_err.start()
+    t_out.join()
+    t_err.join()
 
-        exit_code = p.wait()
+    exit_code = p.wait()
 
     duration = time.monotonic() - t0
-    summary = f"[ci.step={step_name}]{trace_part} __STEP_RESULT__ duration_seconds={duration:.2f} exit_code={exit_code}\n".encode()
-    with stdout_path.open("ab") as out_f:
-        out_f.write(summary)
-        out_f.flush()
-    sys.stdout.buffer.write(summary)
+    summary = f"__STEP_RESULT__ duration_seconds={duration:.2f} exit_code={exit_code}"
+    emit(summary, extra_attrs={
+        "log.source": "stdout",
+        "ci.step.duration_seconds": duration,
+        "ci.step.exit_code": exit_code,
+    })
+    sys.stdout.buffer.write(f"{summary}\n".encode())
     sys.stdout.buffer.flush()
 
     return exit_code, duration
@@ -67,23 +101,19 @@ def run_and_tee(cmd, stdout_path, stderr_path, step_name, trace_id=None, span_id
 # CLI dispatch
 
 def cmd_run_step(args):
-    """Run a wrapped command, capture logs, and export a step span."""
-    workspace = os.environ.get("GITHUB_WORKSPACE", os.getcwd())
-    log_dir = Path(args.log_dir) if args.log_dir else Path(workspace) / "artifacts" / "step-logs"
-
-    step_slug = args.name.lower().replace(" ", "_")
-    stdout_path = log_dir / f"{step_slug}.stdout.log"
-    stderr_path = log_dir / f"{step_slug}.stderr.log"
+    """Run a wrapped command, emit logs via OTLP, and export a step span."""
+    trace_id, span_id = traces.get_step_ids(args.name)
+    emit, shutdown_logs = _create_log_emitter(args.name, trace_id, span_id)
 
     cmd = args.command
     if cmd[0] == "--":
         cmd = cmd[1:]
 
-    trace_id, span_id = traces.get_step_ids(args.name)
-
     start_ns = time.time_ns()
-    exit_code, duration = run_and_tee(cmd, stdout_path, stderr_path, args.name, trace_id, span_id)
+    exit_code, duration = run_and_tee(cmd, emit)
     end_ns = time.time_ns()
+
+    shutdown_logs()
 
     traces.export_step_span(args.name, start_ns, end_ns, exit_code, duration)
 
@@ -93,8 +123,6 @@ def cmd_run_step(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--name", default=None, help="CI step name")
-    ap.add_argument("--log-dir", default="",
-                    help="Override log dir (default: $GITHUB_WORKSPACE/artifacts/step-logs)")
     ap.add_argument("--init-trace", action="store_true",
                     help="Initialize trace context (write trace-context.json)")
     ap.add_argument("--finish-trace", action="store_true",

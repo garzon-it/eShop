@@ -18,6 +18,13 @@ import sys
 import time
 from pathlib import Path
 
+from opentelemetry import trace as otel_trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.trace import SpanContext, TraceFlags, SpanKind, NonRecordingSpan, StatusCode
+
 
 # -- Deterministic ID helpers ------------------------------------------------
 
@@ -85,14 +92,6 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
     Creates a throwaway TracerProvider per call because each ciwrap invocation
     is a separate process -- there's no shared state to reuse.
     """
-    # Lazy imports so log-only mode never touches the OTel SDK.
-    from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-    from opentelemetry.sdk.resources import Resource
-    from opentelemetry.trace import SpanContext, TraceFlags, SpanKind, NonRecordingSpan, StatusCode
-    from opentelemetry import trace as otel_trace
-
     run_id, run_attempt, job, runner = _ci_env()
     resource = Resource.create({
         "service.name": "ci-observability",

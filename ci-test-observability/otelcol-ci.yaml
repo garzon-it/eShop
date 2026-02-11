@@ -9,44 +9,6 @@ receivers:
       load:
       filesystem:
 
-  filelog:
-    include:
-      - ${env:GITHUB_WORKSPACE}/artifacts/step-logs/**/*.log
-    start_at: beginning
-    poll_interval: 200ms
-    operators:
-      # Each line starts with: [ci.step=<name>][trace_id=...][span_id=...]
-      - type: regex_parser
-        regex: '^\[ci\.step=(?P<ci_step>[^\]]+)\](?:\[trace_id=(?P<trace_id>[^\]]+)\]\[span_id=(?P<span_id>[^\]]+)\])?\s*(?P<log_body>.*)$'
-        parse_from: body
-        on_error: drop
-
-      # Set native OTLP trace_id and span_id from parsed attributes
-      - type: trace_parser
-        trace_id:
-          parse_from: attributes.trace_id
-        span_id:
-          parse_from: attributes.span_id
-        on_error: send
-
-      # Replace raw body with the actual log content (without the prefix)
-      - type: move
-        from: attributes.log_body
-        to: body
-
-      # avoid nested kvlist
-      - type: move
-        from: attributes.ci_step
-        to: attributes["ci.step.name"]
-
-      # clean up temporary parsing attributes
-      - type: remove
-        field: attributes.trace_id
-        on_error: send
-      - type: remove
-        field: attributes.span_id
-        on_error: send
-
   otlp:
     protocols:
       http:
@@ -119,7 +81,7 @@ exporters:
 service:
   pipelines:
     logs:
-      receivers: [filelog]
+      receivers: [otlp]
       processors: [resource, batch]
       exporters: [file, otlphttp/grafana]
 
