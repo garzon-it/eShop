@@ -73,9 +73,11 @@ exporters:
       max_backups: 2
 
   otlphttp/grafana:
-    endpoint: "https://otlp-gateway-prod-eu-west-2.grafana.net/otlp"
+    # endpoint: "https://otlp-gateway-prod-eu-west-2.grafana.net/otlp"
+    endpoint: "https://ci-otlp.garzon-it.com"
     headers:
-      Authorization: "Basic MTUyMDk0NjpnbGNfZXlKdklqb2lNVFkyTkRJM05TSXNJbTRpT2lKamFTMTBaWE4wSWl3aWF5STZJak55YnpWUVJHUjBOVFJETVcxUlp6ZFJNRWsxYVRKek5TSXNJbTBpT25zaWNpSTZJbkJ5YjJRdFpYVXRkMlZ6ZEMweUluMTk="
+      # Authorization: "Basic MTUyMDk0NjpnbGNfZXlKdklqb2lNVFkyTkRJM05TSXNJbTRpT2lKamFTMTBaWE4wSWl3aWF5STZJak55YnpWUVJHUjBOVFJETVcxUlp6ZFJNRWsxYVRKek5TSXNJbTBpT25zaWNpSTZJbkJ5YjJRdFpYVXRkMlZ6ZEMweUluMTk="
+      Authorization: "Basic Y2l1c2VyOm1lc2l0YXNjb2xvbWJpYTEyMzQ="
 
 
 service:
