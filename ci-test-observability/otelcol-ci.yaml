@@ -1,6 +1,6 @@
 receivers:
   hostmetrics:
-    collection_interval: 500ms
+    collection_interval: 1s
     scrapers:
       cpu:
         metrics:
