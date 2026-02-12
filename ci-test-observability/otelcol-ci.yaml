@@ -22,6 +22,9 @@ receivers:
 processors:
   resource:
     attributes:
+      - key: service.name
+        value: "ci-observability"
+        action: upsert
       - key: ci.provider
         value: "github_actions"
         action: upsert
