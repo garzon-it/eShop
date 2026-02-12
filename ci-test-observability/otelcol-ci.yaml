@@ -3,6 +3,11 @@ receivers:
     collection_interval: 500ms
     scrapers:
       cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+          system.cpu.logical.count:
+            enabled: true
       memory:
       disk:
       network:
