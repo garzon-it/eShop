@@ -25,37 +25,40 @@ processors:
       - key: service.name
         value: "ci-observability"
         action: upsert
-      - key: ci.provider
-        value: "github_actions"
+      - key: "cicd.provider.name" # ! not in OTEL semantic convention
+        value: "github_actions" # TODO this is a hardcoded value. Update for each ci/cd system
         action: upsert
-      - key: ci.run.id
+      - key: cicd.pipeline.run.id
         value: ${env:GITHUB_RUN_ID}
         action: upsert
-      - key: ci.run.number
+      - key: cicd.pipeline.run.attempt # ! not in OTEL semantic convention
         value: ${env:GITHUB_RUN_NUMBER}
         action: upsert
-      - key: ci.workflow
+      - key: cicd.pipeline.name
         value: ${env:GITHUB_WORKFLOW}
         action: upsert
-      - key: ci.job
+      - key: cicd.job.name
         value: ${env:GITHUB_JOB}
         action: upsert
-      - key: vcs.commit.sha
+      - key: vcs.ref.head.revision
         value: ${env:GITHUB_SHA}
         action: upsert
-      - key: vcs.ref
-        value: ${env:GITHUB_REF}
+      - key: vcs.ref.head.name
+        value: ${env:GITHUB_REF_NAME}
         action: upsert
-      - key: vcs.repository
+      - key: vcs.ref.head.type
+        value: ${env:GITHUB_REF_TYPE}
+        action: upsert
+      - key: vcs.repository.name
         value: ${env:GITHUB_REPOSITORY}
         action: upsert
-      - key: ci.runner.name
+      - key: cicd.worker.name
         value: ${env:RUNNER_NAME}
         action: upsert
-      - key: ci.runner.os
+      - key: os.name
         value: ${env:RUNNER_OS}
         action: upsert
-      - key: ci.runner.environment
+      - key: cicd.worker.type # ! not in OTEL semantic convention
         value: ${env:RUNNER_ENVIRONMENT}
         action: upsert
 

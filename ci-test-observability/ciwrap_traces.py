@@ -95,10 +95,10 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
     run_id, run_attempt, job, runner = _ci_env()
     resource = Resource.create({
         "service.name": "ci-observability",
-        "ci.provider": "github_actions",
-        "ci.run.id": run_id,
-        "ci.run.attempt": run_attempt,
-        "ci.job": job,
+        "cicd.provider.name": "github_actions",
+        "cicd.pipeline.run.id": run_id,
+        "cicd.pipeline.run.attempt": run_attempt, # ! TODO andres: is this pipeline attemp or job attemp?
+        "cicd.job.name": job,
     })
 
     id_gen = _DeterministicIdGenerator(trace_id_bytes, span_id_bytes)
@@ -188,8 +188,8 @@ def finish_trace():
         start_time_ns=ctx["start_time_ns"],
         end_time_ns=end_time_ns,
         attributes={
-            "ci.job.name": job_name,
-            "ci.job.duration_seconds": (end_time_ns - ctx["start_time_ns"]) / 1e9,
+            "cicd.job.name": job_name,
+            "cicd.job.duration": (end_time_ns - ctx["start_time_ns"]) / 1e9,
         },
     )
     print(f"Job span exported (trace_id={ctx['trace_id']}, span_id={ctx['job_span_id']})")
@@ -209,6 +209,8 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration):
     run_id, run_attempt, job, runner = _ci_env()
     step_span_id = _deterministic_span_id(run_id, run_attempt, job, runner, step_name)
 
+    result = "failure" if exit_code != 0 else "success"
+
     _export_span(
         name=step_name,
         trace_id_bytes=trace_id,
@@ -217,10 +219,10 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration):
         start_time_ns=start_ns,
         end_time_ns=end_ns,
         attributes={
-            "ci.step.name": step_name,
-            "ci.step.exit_code": exit_code,
-            "ci.step.duration_seconds": duration,
+            "cicd.pipeline.task.name": step_name,
+            "cicd.pipeline.task.run.result": result,
+            "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
         },
         status_error=(exit_code != 0),
     )
-    print(f"Step span exported: {step_name} (exit_code={exit_code}, duration={duration:.2f}s)")
+    print(f"Step span exported: {step_name} (result={result}, duration={duration:.2f}s)")

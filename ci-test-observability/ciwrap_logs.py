@@ -36,7 +36,7 @@ def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
 
     def emit(body, severity="INFO", extra_attrs=None):
         sev_num = SeverityNumber.ERROR if severity == "ERROR" else SeverityNumber.INFO
-        attrs = {"ci.step.name": step_name}
+        attrs = {"cicd.pipeline.task.name": step_name}
         if extra_attrs:
             attrs.update(extra_attrs)
         logger.emit(LogRecord(
@@ -84,13 +84,14 @@ def run_and_tee(cmd, emit):
     t_err.join()
 
     exit_code = p.wait()
+    result = "failure" if exit_code != 0 else "success"
 
     duration = time.monotonic() - t0
-    summary = f"__STEP_RESULT__ duration_seconds={duration:.2f} exit_code={exit_code}"
+    summary = f"__STEP_RESULT__ duration_seconds={duration:.2f} result={result}"
     emit(summary, extra_attrs={
         "log.source": "stdout",
-        "ci.step.duration_seconds": duration,
-        "ci.step.exit_code": exit_code,
+        "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
+        "cicd.pipeline.task.run.result": result,
     })
     sys.stdout.buffer.write(f"{summary}\n".encode())
     sys.stdout.buffer.flush()
