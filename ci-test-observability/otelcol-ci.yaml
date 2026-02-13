@@ -23,7 +23,7 @@ processors:
   resource:
     attributes:
       - key: service.name
-        value: "ci-observability"
+        value: ${env:CI_SERVICE_NAME}
         action: upsert
       - key: "cicd.provider.name" # ! not in OTEL semantic convention
         value: "github_actions" # TODO this is a hardcoded value. Update for each ci/cd system

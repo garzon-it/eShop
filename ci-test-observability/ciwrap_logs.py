@@ -8,6 +8,7 @@ Usage:
 """
 
 import argparse
+import os
 import subprocess
 import sys
 import threading
@@ -25,7 +26,8 @@ import ciwrap_traces as traces
 
 def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
     """Create an OTLP log emitter for a CI step. Returns (emit_fn, shutdown_fn)."""
-    resource = Resource.create({"service.name": "ci-observability"})
+    service_name = os.environ.get("CI_SERVICE_NAME", "ci-observability")
+    resource = Resource.create({"service.name": service_name})
     provider = LoggerProvider(resource=resource)
     provider.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter()))
     logger = provider.get_logger("ci-observability")
