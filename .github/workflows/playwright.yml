@@ -18,6 +18,8 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ${{ matrix.runner }}
+    env:
+      CI_SERVICE_NAME: "eshop-e2e"
     strategy:
       matrix:
         runner: [
