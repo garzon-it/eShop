@@ -36,13 +36,13 @@ def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
     span_id_int = int(span_id_hex, 16) if span_id_hex else 0
     flags = TraceFlags(TraceFlags.SAMPLED) if trace_id_hex else TraceFlags.DEFAULT
 
-    def emit(body, severity="INFO", extra_attrs=None):
+    def emit(body, severity="INFO", timestamp_ns=None, extra_attrs=None):
         sev_num = SeverityNumber.ERROR if severity == "ERROR" else SeverityNumber.INFO
         attrs = {"cicd.pipeline.task.name": step_name}
         if extra_attrs:
             attrs.update(extra_attrs)
         logger.emit(LogRecord(
-            timestamp=time.time_ns(),
+            timestamp=timestamp_ns or time.time_ns(),
             trace_id=trace_id_int,
             span_id=span_id_int,
             trace_flags=flags,
@@ -59,27 +59,28 @@ def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
     return emit, shutdown
 
 
-def _reader(stream, console, emit, severity, source):
-    """Read lines from stream, write to console, and emit OTLP log records."""
+def _reader(stream, console, buffer, source):
+    """Read lines from stream, write to console in real time, and buffer for later OTLP export."""
     for raw in iter(stream.readline, b""):
         console.write(raw)
         console.flush()
         line = raw.decode("utf-8", errors="replace").rstrip("\n\r")
         if line:
-            emit(line, severity=severity, extra_attrs={"log.source": source})
+            buffer.append((time.time_ns(), line, source))
     stream.close()
 
 
 def run_and_tee(cmd, emit):
-    """Run cmd, stream output to console, and emit each line as an OTLP log record."""
+    """Run cmd, stream output to console, buffer logs, then emit with severity based on exit code."""
     t0 = time.monotonic()
+    log_buffer = []  # list of (timestamp_ns, body, source)
 
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     t_out = threading.Thread(target=_reader,
-                             args=(p.stdout, sys.stdout.buffer, emit, "INFO", "stdout"))
+                             args=(p.stdout, sys.stdout.buffer, log_buffer, "stdout"))
     t_err = threading.Thread(target=_reader,
-                             args=(p.stderr, sys.stderr.buffer, emit, "ERROR", "stderr"))
+                             args=(p.stderr, sys.stderr.buffer, log_buffer, "stderr"))
     t_out.start()
     t_err.start()
     t_out.join()
@@ -87,10 +88,16 @@ def run_and_tee(cmd, emit):
 
     exit_code = p.wait()
     result = "failure" if exit_code != 0 else "success"
+    severity = "ERROR" if exit_code != 0 else "INFO"
+
+    # Flush buffered logs with severity based on exit code
+    for ts, body, source in log_buffer:
+        emit(body, severity=severity, timestamp_ns=ts,
+             extra_attrs={"log.source": source})
 
     duration = time.monotonic() - t0
     summary = f"__STEP_RESULT__ duration_seconds={duration:.2f} result={result}"
-    emit(summary, extra_attrs={
+    emit(summary, severity=severity, extra_attrs={
         "log.source": "stdout",
         "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
         "cicd.pipeline.task.run.result": result,
