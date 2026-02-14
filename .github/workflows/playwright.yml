@@ -20,6 +20,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       CI_SERVICE_NAME: "eshop-e2e"
+      CI_PIPELINE_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
     strategy:
       matrix:
         runner: [

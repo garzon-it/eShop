@@ -31,6 +31,9 @@ processors:
       - key: cicd.pipeline.run.id
         value: ${env:GITHUB_RUN_ID}
         action: upsert
+      - key: cicd.pipeline.run.url
+        value: ${env:CI_PIPELINE_RUN_URL}
+        action: upsert
       - key: cicd.pipeline.run.attempt # ! not in OTEL semantic convention
         value: ${env:GITHUB_RUN_NUMBER}
         action: upsert
