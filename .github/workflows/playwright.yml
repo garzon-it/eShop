@@ -19,7 +19,8 @@ jobs:
     timeout-minutes: 60
     runs-on: ${{ matrix.runner }}
     env:
-      CI_SERVICE_NAME: "eshop-e2e"
+      CI_SERVICE_NAME: "cicd-pipeline"
+      CI_JOB_TARGET: "eshop-e2e"
       CI_PIPELINE_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
     strategy:
       matrix:

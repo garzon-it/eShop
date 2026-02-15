@@ -43,6 +43,9 @@ processors:
       - key: cicd.job.name
         value: ${env:GITHUB_JOB}
         action: upsert
+      - key: cicd.job.target
+        value: ${env:CI_JOB_TARGET}
+        action: upsert
       - key: vcs.ref.head.revision
         value: ${env:GITHUB_SHA}
         action: upsert

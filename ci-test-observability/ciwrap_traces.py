@@ -93,13 +93,15 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
     is a separate process -- there's no shared state to reuse.
     """
     run_id, run_attempt, job, runner = _ci_env()
-    service_name = os.environ.get("CI_SERVICE_NAME", "ci-observability")
+    service_name = os.environ.get("CI_SERVICE_NAME", "cicd-pipeline")
+    job_target = os.environ.get("CI_JOB_TARGET", "")
     resource = Resource.create({
         "service.name": service_name,
         "cicd.provider.name": "github_actions",
         "cicd.pipeline.run.id": run_id,
         "cicd.pipeline.run.attempt": run_attempt, # ! TODO andres: is this pipeline attemp or job attemp?
         "cicd.job.name": job,
+        "cicd.job.target": job_target,
     })
 
     id_gen = _DeterministicIdGenerator(trace_id_bytes, span_id_bytes)

@@ -26,8 +26,9 @@ import ciwrap_traces as traces
 
 def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
     """Create an OTLP log emitter for a CI step. Returns (emit_fn, shutdown_fn)."""
-    service_name = os.environ.get("CI_SERVICE_NAME", "ci-observability")
-    resource = Resource.create({"service.name": service_name})
+    service_name = os.environ.get("CI_SERVICE_NAME", "cicd-pipeline")
+    job_target = os.environ.get("CI_JOB_TARGET", "")
+    resource = Resource.create({"service.name": service_name, "cicd.job.target": job_target})
     provider = LoggerProvider(resource=resource)
     provider.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter()))
     logger = provider.get_logger("ci-observability")
