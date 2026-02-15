@@ -89,16 +89,16 @@ def run_and_tee(cmd, emit):
 
     exit_code = p.wait()
     result = "failure" if exit_code != 0 else "success"
-    severity = "ERROR" if exit_code != 0 else "INFO"
+    summary_severity = "ERROR" if exit_code != 0 else "INFO"
 
-    # Flush buffered logs with severity based on exit code
+    # Flush buffered logs — individual lines are always INFO
     for ts, body, source in log_buffer:
-        emit(body, severity=severity, timestamp_ns=ts,
+        emit(body, severity="INFO", timestamp_ns=ts,
              extra_attrs={"log.source": source})
 
     duration = time.monotonic() - t0
     summary = f"__STEP_RESULT__ duration_seconds={duration:.2f} result={result}"
-    emit(summary, severity=severity, extra_attrs={
+    emit(summary, severity=summary_severity, extra_attrs={
         "log.source": "stdout",
         "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
         "cicd.pipeline.task.run.result": result,
