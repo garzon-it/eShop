@@ -70,15 +70,19 @@ jobs:
       run: python3 ci-test-observability/ciwrap_logs.py --name "Build" -- dotnet build eShop.Web.slnf
 
     - name: Test Basket.UnitTests
+      if: "!cancelled()"
       run: python3 ci-test-observability/ciwrap_logs.py --name "Test Basket.UnitTests" -- dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build
 
     - name: Test Ordering.UnitTests
+      if: "!cancelled()"
       run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.UnitTests" -- dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build
 
     - name: Test Catalog.FunctionalTests
+      if: "!cancelled()"
       run: python3 ci-test-observability/ciwrap_logs.py --name "Test Catalog.FunctionalTests" -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build
 
     - name: Test Ordering.FunctionalTests
+      if: "!cancelled()"
       run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.FunctionalTests" -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build
 
     - name: Finish trace (export job span)
