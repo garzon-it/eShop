@@ -91,24 +91,15 @@ jobs:
       if: always()
       run: python3 ci-test-observability/ciwrap_logs.py --finish-trace
 
-    - name: Flush OTel pipeline
-      if: always()
-      run: sleep 2
-
-    - name: Stop OTel Collector
+    - name: Stop OTel Collector (graceful shutdown flushes pending data)
       if: always()
       run: |
         set +e
         pidfile="artifacts/otel/otelcol-${{ matrix.runner }}.pid"
-        if [ -f "$pidfile" ]; then
-          pid=$(cat "$pidfile")
-          kill "$pid" 2>/dev/null || true
-          # Wait for graceful shutdown (up to 10s)
-          for i in $(seq 1 10); do
-            kill -0 "$pid" 2>/dev/null || break
-            sleep 1
-          done
-        fi
+        [ -f "$pidfile" ] || exit 0
+        pid=$(cat "$pidfile")
+        kill "$pid" 2>/dev/null
+        timeout 12 tail --pid="$pid" -f /dev/null 2>/dev/null
 
     - uses: actions/upload-artifact@v4
       if: always()
