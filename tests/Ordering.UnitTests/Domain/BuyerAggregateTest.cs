@@ -103,7 +103,8 @@ public class BuyerAggregateTest
         var result = fakePaymentMethod.IsEqualTo(cardTypeId, cardNumber, expiration);
 
         //Assert
-        Assert.IsTrue(result);
+        Assert.IsFalse(result); // changed to view CI/CD when test fail.
+        // Assert.IsTrue(result); // TODO: use this line
     }
 
     [TestMethod]
