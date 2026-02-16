@@ -10,20 +10,99 @@ on:
   push:
     branches:
       - main
+      - otel_test
     paths-ignore:
       - '**.md'
       - 'src/ClientApp/**'
       - 'tests/ClientApp.UnitTests/**'
       - '.github/workflows/pr-validation-maui.yml'
 
-jobs:  
+jobs:
   test:
-    runs-on: ubuntu-latest    
+    runs-on: ${{ matrix.runner }}
+    env:
+      CI_SERVICE_NAME: "cicd-pipeline"
+      CI_JOB_TARGET: "eshop-pr-validation"
+      CI_PIPELINE_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      CI_INSTANCE_ID: "${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.runner }}"
+    strategy:
+      matrix:
+        runner: [
+          self-hosted,
+          ubuntu-latest
+        ]
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET (global.json)
-        uses: actions/setup-dotnet@v3
-      - name: Build 
-        run: dotnet build eShop.Web.slnf
-      - name: Test
-        run: dotnet test eShop.Web.slnf
+    - uses: actions/checkout@v4
+    - name: Setup .NET (global.json)
+      uses: actions/setup-dotnet@v3
+
+    - name: Setup Python (for ciwrap)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Python OTel dependencies
+      run: pip install -r ci-test-observability/requirements.txt
+
+    - name: Prepare OTel
+      run: |
+        set -euo pipefail
+        mkdir -p artifacts/step-logs artifacts/otel
+
+        OTEL_VERSION="0.99.0"
+        curl -fsSL -o otelcol-contrib.tgz \
+          "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_linux_amd64.tar.gz"
+        tar -xzf otelcol-contrib.tgz otelcol-contrib
+        chmod +x otelcol-contrib
+
+    - name: Start OTel Collector
+      run: |
+        set -euo pipefail
+        mkdir -p artifacts/otel
+        ./otelcol-contrib --config ci-test-observability/otelcol-ci.yaml \
+          > artifacts/otel/otelcol-${{ matrix.runner }}.log 2>&1 &
+        echo $! > artifacts/otel/otelcol-${{ matrix.runner }}.pid
+
+    - name: Initialize trace context
+      run: python3 ci-test-observability/ciwrap_logs.py --init-trace
+
+    - name: Build
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Build" -- dotnet build eShop.Web.slnf
+
+    - name: Test Basket.UnitTests
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Basket.UnitTests" -- dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build
+
+    - name: Test Ordering.UnitTests
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.UnitTests" -- dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build
+
+    - name: Test Catalog.FunctionalTests
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Catalog.FunctionalTests" -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build
+
+    - name: Test Ordering.FunctionalTests
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.FunctionalTests" -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build
+
+    - name: Finish trace (export job span)
+      if: always()
+      run: python3 ci-test-observability/ciwrap_logs.py --finish-trace
+
+    - name: Stop OTel Collector (graceful shutdown flushes pending data)
+      if: always()
+      run: |
+        set +e
+        pidfile="artifacts/otel/otelcol-${{ matrix.runner }}.pid"
+        [ -f "$pidfile" ] || exit 0
+        pid=$(cat "$pidfile")
+        kill "$pid" 2>/dev/null
+        timeout 12 tail --pid="$pid" -f /dev/null 2>/dev/null
+
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: otel-data-pr-validation-${{ matrix.runner }}
+        path: |
+          artifacts/otel/otel-logs.json
+          artifacts/otel/otel-metrics.json
+          artifacts/otel/otel-traces.json
+          artifacts/step-logs/
+          artifacts/otel/otelcol-${{ matrix.runner }}.log
+        retention-days: 30
