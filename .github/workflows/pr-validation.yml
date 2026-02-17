@@ -40,6 +40,8 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: ci-test-observability/requirements.txt
 
     - name: Install Python OTel dependencies
       run: pip install -r ci-test-observability/requirements.txt
