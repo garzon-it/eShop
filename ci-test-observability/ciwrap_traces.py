@@ -202,7 +202,8 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration):
     """Export a child span for one CI step. No-op if trace context is missing."""
     ctx = _read_context()
     if ctx is None:
-        print(f"No trace context at {_context_path()}, skipping span export",
+        print(f"WARNING: No trace context found for step '{step_name}'. "
+              f"Did you forget to run --init-trace?",
               file=sys.stderr)
         return
 

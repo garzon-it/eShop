@@ -115,6 +115,10 @@ def run_and_tee(cmd, emit):
 def cmd_run_step(args):
     """Run a wrapped command, emit logs via OTLP, and export a step span."""
     trace_id, span_id = traces.get_step_ids(args.name)
+    if trace_id is None:
+        print(f"WARNING: No trace context found for step '{args.name}'. "
+              f"Did you forget to run --init-trace?",
+              file=sys.stderr)
     emit, shutdown_logs = _create_log_emitter(args.name, trace_id, span_id)
 
     cmd = args.command
