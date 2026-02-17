@@ -91,9 +91,10 @@ def run_and_tee(cmd, emit):
     result = "failure" if exit_code != 0 else "success"
     summary_severity = "ERROR" if exit_code != 0 else "INFO"
 
-    # Flush buffered logs — individual lines are always INFO
+    # Flush buffered logs — severity based on stream source
     for ts, body, source in log_buffer:
-        emit(body, severity="INFO", timestamp_ns=ts,
+        severity = "ERROR" if source == "stderr" else "INFO"
+        emit(body, severity=severity, timestamp_ns=ts,
              extra_attrs={"log.source": source})
 
     duration = time.monotonic() - t0
