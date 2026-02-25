@@ -60,6 +60,9 @@ processors:
       - key: os.name
         value: ${env:RUNNER_OS}
         action: upsert
+      - key: host.arch
+        value: ${env:RUNNER_ARCH}
+        action: upsert
 
   # HIGH-CARDINALITY (TRACES + LOGS ONLY)
   resource_run_context:

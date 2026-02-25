@@ -22,7 +22,7 @@ from opentelemetry import trace as otel_trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.trace import SpanContext, TraceFlags, SpanKind, NonRecordingSpan, StatusCode
 
 
@@ -104,7 +104,7 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
 
     id_gen = _DeterministicIdGenerator(trace_id_bytes, span_id_bytes)
     provider = TracerProvider(resource=resource, id_generator=id_gen)
-    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+    provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(timeout=5)))
     tracer = provider.get_tracer("ci-observability")
 
     # If this span has a parent, create a remote SpanContext for it.
@@ -196,8 +196,14 @@ def finish_trace():
     print(f"Job span exported (trace_id={ctx['trace_id']}, span_id={ctx['job_span_id']})")
 
 
-def export_step_span(step_name, start_ns, end_ns, exit_code, duration):
-    """Export a child span for one CI step. No-op if trace context is missing."""
+def export_step_span(step_name, start_ns, end_ns, exit_code, duration, process_metrics=None):
+    """Export a child span for one CI step. No-op if trace context is missing.
+
+    process_metrics: optional dict of process-level resource attributes
+                     (e.g. process.cpu.max_percent, process.memory.rss.max_bytes)
+                     produced by _ProcessMetricsCollector.summary(). Merged into
+                     the span attributes when --process-metrics is active.
+    """
     ctx = _read_context()
     if ctx is None:
         print(f"WARNING: No trace context found for step '{step_name}'. "
@@ -213,6 +219,14 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration):
 
     result = "failure" if exit_code != 0 else "success"
 
+    attributes = {
+        "cicd.pipeline.task.name": step_name,
+        "cicd.pipeline.task.run.result": result,
+        "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
+    }
+    if process_metrics:
+        attributes.update(process_metrics)
+
     _export_span(
         name=step_name,
         trace_id_bytes=trace_id,
@@ -220,11 +234,7 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration):
         parent_span_id_bytes=job_span_id,
         start_time_ns=start_ns,
         end_time_ns=end_ns,
-        attributes={
-            "cicd.pipeline.task.name": step_name,
-            "cicd.pipeline.task.run.result": result,
-            "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
-        },
+        attributes=attributes,
         status_error=(exit_code != 0),
     )
     print(f"Step span exported: {step_name} (result={result}, duration={duration:.2f}s)")
