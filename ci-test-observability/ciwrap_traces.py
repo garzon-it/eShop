@@ -98,8 +98,6 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
     resource = Resource.create({
         "service.name": service_name,
         "cicd.provider.name": "github_actions",
-        "cicd.pipeline.run.id": run_id,
-        "cicd.pipeline.run.attempt": run_attempt, # ! TODO andres: is this pipeline attemp or job attemp?
         "cicd.job.name": job,
         "cicd.job.target": job_target,
     })

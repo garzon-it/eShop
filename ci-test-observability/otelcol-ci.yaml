@@ -1,18 +1,27 @@
 receivers:
   hostmetrics:
-    collection_interval: 1s
+    collection_interval: 5s
     scrapers:
       cpu:
         metrics:
           system.cpu.utilization:
             enabled: true
-          system.cpu.logical.count:
+          system.cpu.time:
             enabled: true
+          system.cpu.logical.count:
+            enabled: false
       memory:
-      disk:
-      network:
+        metrics:
+          system.memory.usage:
+            enabled: true
+          system.memory.utilization:
+            enabled: false
       load:
-      filesystem:
+        metrics:
+          system.cpu.load_average.1m:
+            enabled: false
+          system.cpu.load_average.5m:
+            enabled: false
 
   otlp:
     protocols:
@@ -20,7 +29,9 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
-  resource:
+
+  # LOW-CARDINALITY (ALL SIGNALS)
+  resource_common:
     attributes:
       - key: service.name
         value: ${env:CI_SERVICE_NAME}
@@ -28,17 +39,8 @@ processors:
       - key: service.instance.id
         value: ${env:CI_INSTANCE_ID}
         action: upsert
-      - key: "cicd.provider.name" # ! not in OTEL semantic convention
-        value: "github_actions" # TODO this is a hardcoded value. Update for each ci/cd system
-        action: upsert
-      - key: cicd.pipeline.run.id
-        value: ${env:GITHUB_RUN_ID}
-        action: upsert
-      - key: cicd.pipeline.run.url
-        value: ${env:CI_PIPELINE_RUN_URL}
-        action: upsert
-      - key: cicd.pipeline.run.attempt # ! not in OTEL semantic convention
-        value: ${env:GITHUB_RUN_ATTEMPT}
+      - key: cicd.provider.name
+        value: "github_actions"
         action: upsert
       - key: cicd.pipeline.name
         value: ${env:GITHUB_WORKFLOW}
@@ -48,6 +50,28 @@ processors:
         action: upsert
       - key: cicd.job.target
         value: ${env:CI_JOB_TARGET}
+        action: upsert
+      - key: cicd.worker.type
+        value: ${env:RUNNER_ENVIRONMENT}
+        action: upsert
+      - key: host.name
+        value: ${env:RUNNER_NAME}
+        action: upsert
+      - key: os.name
+        value: ${env:RUNNER_OS}
+        action: upsert
+
+  # HIGH-CARDINALITY (TRACES + LOGS ONLY)
+  resource_run_context:
+    attributes:
+      - key: cicd.pipeline.run.id
+        value: ${env:GITHUB_RUN_ID}
+        action: upsert
+      - key: cicd.pipeline.run.url
+        value: ${env:CI_PIPELINE_RUN_URL}
+        action: upsert
+      - key: cicd.pipeline.run.attempt
+        value: ${env:GITHUB_RUN_ATTEMPT}
         action: upsert
       - key: vcs.ref.head.revision
         value: ${env:GITHUB_SHA}
@@ -60,15 +84,6 @@ processors:
         action: upsert
       - key: vcs.repository.name
         value: ${env:GITHUB_REPOSITORY}
-        action: upsert
-      - key: cicd.worker.name
-        value: ${env:RUNNER_NAME}
-        action: upsert
-      - key: os.name
-        value: ${env:RUNNER_OS}
-        action: upsert
-      - key: cicd.worker.type # ! not in OTEL semantic convention
-        value: ${env:RUNNER_ENVIRONMENT}
         action: upsert
 
   batch: {}
@@ -93,25 +108,27 @@ exporters:
       max_backups: 2
 
   otlphttp/grafana:
-    # endpoint: "https://otlp-gateway-prod-eu-west-2.grafana.net/otlp"
     endpoint: "https://ci-otlp.garzon-it.com"
     headers:
-      # Authorization: "Basic MTUyMDk0NjpnbGNfZXlKdklqb2lNVFkyTkRJM05TSXNJbTRpT2lKamFTMTBaWE4wSWl3aWF5STZJak55YnpWUVJHUjBOVFJETVcxUlp6ZFJNRWsxYVRKek5TSXNJbTBpT25zaWNpSTZJbkJ5YjJRdFpYVXRkMlZ6ZEMweUluMTk="
-      Authorization: "Basic Y2l1c2VyOm1lc2l0YXNjb2xvbWJpYTEyMzQ="
+      Authorization: ${env:OTLP_AUTH_HEADER}
 
 service:
   pipelines:
+
+    # LOGS
     logs:
       receivers: [otlp]
-      processors: [resource, batch]
+      processors: [resource_common, resource_run_context, batch]
       exporters: [file, otlphttp/grafana]
 
+    # METRICS
     metrics:
       receivers: [hostmetrics]
-      processors: [resource, batch]
+      processors: [resource_common, batch]
       exporters: [file/metrics, otlphttp/grafana]
 
+    # TRACES
     traces:
       receivers: [otlp]
-      processors: [resource, batch]
+      processors: [resource_common, resource_run_context, batch]
       exporters: [file/traces, otlphttp/grafana]
