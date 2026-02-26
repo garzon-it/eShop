@@ -19,9 +19,9 @@ receivers:
       load:
         metrics:
           system.cpu.load_average.1m:
-            enabled: false
+            enabled: true
           system.cpu.load_average.5m:
-            enabled: false
+            enabled: true
 
   otlp:
     protocols:
@@ -37,7 +37,7 @@ processors:
         value: ${env:CI_SERVICE_NAME}
         action: upsert
       - key: service.instance.id
-        value: ${env:CI_INSTANCE_ID}
+        value: ${env:RUNNER_NAME}
         action: upsert
       - key: cicd.provider.name
         value: "github_actions"
