@@ -31,7 +31,7 @@ receivers:
 processors:
 
   # LOW-CARDINALITY (ALL SIGNALS)
-  resource_common:
+  resource/common:
     attributes:
       - key: service.name
         value: ${env:CI_SERVICE_NAME}
@@ -65,7 +65,7 @@ processors:
         action: upsert
 
   # HIGH-CARDINALITY (TRACES + LOGS ONLY)
-  resource_run_context:
+  resource/run_context:
     attributes:
       - key: cicd.pipeline.run.id
         value: ${env:GITHUB_RUN_ID}
@@ -121,17 +121,17 @@ service:
     # LOGS
     logs:
       receivers: [otlp]
-      processors: [resource_common, resource_run_context, batch]
+      processors: [resource/common, resource/run_context, batch]
       exporters: [file, otlphttp/grafana]
 
     # METRICS
     metrics:
       receivers: [hostmetrics]
-      processors: [resource_common, batch]
+      processors: [resource/common, batch]
       exporters: [file/metrics, otlphttp/grafana]
 
     # TRACES
     traces:
       receivers: [otlp]
-      processors: [resource_common, resource_run_context, batch]
+      processors: [resource/common, resource/run_context, batch]
       exporters: [file/traces, otlphttp/grafana]
