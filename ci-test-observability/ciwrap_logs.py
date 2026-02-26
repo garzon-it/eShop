@@ -46,38 +46,67 @@ class _ProcessMetricsCollector:
         self._stop.set()
         self._thread.join(timeout=self._interval * 3 + 2)
 
-    def _live_procs(self):
-        import psutil
-        try:
-            root = psutil.Process(self._pid)
-            procs = [root]
-            if self._include_children:
-                procs += root.children(recursive=True)
-            return [p for p in procs if p.is_running()]
-        except psutil.NoSuchProcess:
-            return []
-
     def _run(self):
         import psutil
-        # First cpu_percent() call always returns 0.0 — it just sets the baseline.
-        for p in self._live_procs():
+        # Cache pid -> Process objects across iterations so cpu_percent() accumulates
+        # a real delta. Creating a new Process object per iteration resets the baseline
+        # and always returns 0.0 on the first call.
+        _cache = {}  # pid -> psutil.Process
+
+        def _refresh_cache():
+            """Sync cache with currently live processes.
+
+            New processes get a baseline cpu_percent() call (returns 0.0, discarded)
+            and are excluded from the current iteration's CPU sample — they'll produce
+            a valid reading on the next poll.  Returns the set of newly added PIDs.
+            """
             try:
-                p.cpu_percent()
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
+                root = psutil.Process(self._pid)
+                current_pids = {root.pid}
+                if self._include_children:
+                    for c in root.children(recursive=True):
+                        current_pids.add(c.pid)
+            except psutil.NoSuchProcess:
+                return set()
+
+            new_pids = set()
+            for pid in current_pids:
+                if pid not in _cache:
+                    try:
+                        proc = psutil.Process(pid)
+                        proc.cpu_percent()  # baseline — discarded
+                        _cache[pid] = proc
+                        new_pids.add(pid)
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+
+            for pid in list(_cache):
+                if pid not in current_pids:
+                    del _cache[pid]
+
+            return new_pids
+
+        # Initial population — establishes cpu_percent baselines for all current procs.
+        _refresh_cache()
 
         while not self._stop.is_set():
             self._stop.wait(self._interval)
-            procs = self._live_procs()
+            new_pids = _refresh_cache()
+            # Exclude newly added processes from CPU sum (their baseline was just set).
+            procs = [p for pid, p in _cache.items()
+                     if pid not in new_pids and p.is_running()]
             if not procs:
-                break
+                if not _cache:
+                    break
+                continue
             try:
                 cpu = sum(p.cpu_percent() for p in procs)
-                rss = sum(p.memory_info().rss for p in procs)
+                rss = sum(p.memory_info().rss for p in _cache.values()
+                          if p.is_running())
                 try:
-                    io = psutil.Process(self._pid).io_counters()
+                    io = _cache[self._pid].io_counters()
                     read_bytes, write_bytes = io.read_bytes, io.write_bytes
-                except (psutil.AccessDenied, AttributeError, psutil.NoSuchProcess):
+                except (psutil.AccessDenied, AttributeError, psutil.NoSuchProcess, KeyError):
                     read_bytes = write_bytes = None
                 self._samples.append((cpu, rss, read_bytes, write_bytes))
             except (psutil.NoSuchProcess, psutil.AccessDenied):
