@@ -73,7 +73,7 @@ jobs:
       run: python3 ci-test-observability/ciwrap_logs.py --init-trace
 
     - name: Install dependencies
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Install dependencies" -- npm ci
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Install dependencies" --process-metrics --process-include-children -- npm ci
 
     - name: Install .NET HTTPS Development Certificate
       run: |
@@ -81,7 +81,7 @@ jobs:
         python3 ci-test-observability/ciwrap_logs.py --name "Install .NET HTTPS Dev Certs - install" -- dotnet linux-dev-certs install
 
     - name: Install Playwright Browsers
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Install Playwright Browsers" -- npx playwright install chromium
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Install Playwright Browsers" --process-metrics -- npx playwright install chromium
 
     - name: Run Playwright tests
       run: python3 ci-test-observability/ciwrap_logs.py --name "Run Playwright tests" --process-metrics --process-include-children -- npx playwright test
