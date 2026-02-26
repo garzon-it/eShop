@@ -26,10 +26,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.trace import SpanContext, TraceFlags, SpanKind, NonRecordingSpan, StatusCode
 
 
-# -- Deterministic ID helpers ------------------------------------------------
-
 def _ci_env():
-    """Read the GitHub Actions env vars used for trace ID computation."""
     return (
         os.environ.get("GITHUB_RUN_ID", ""),
         os.environ.get("GITHUB_RUN_ATTEMPT", "1"),
@@ -39,18 +36,14 @@ def _ci_env():
 
 
 def _deterministic_trace_id(run_id, run_attempt, job, runner):
-    """16-byte trace ID from CI env vars."""
-    h = hashlib.sha256(f"{run_id}:{run_attempt}:{job}:{runner}".encode()).digest()
-    return h[:16]
+    digest = hashlib.sha256(f"{run_id}:{run_attempt}:{job}:{runner}".encode()).digest()
+    return digest[:16]
 
 
 def _deterministic_span_id(run_id, run_attempt, job, runner, suffix="job"):
-    """8-byte span ID from CI env vars + a distinguishing suffix."""
-    h = hashlib.sha256(f"{run_id}:{run_attempt}:{job}:{runner}:{suffix}".encode()).digest()
-    return h[:8]
+    digest = hashlib.sha256(f"{run_id}:{run_attempt}:{job}:{runner}:{suffix}".encode()).digest()
+    return digest[:8]
 
-
-# -- Trace context file ------------------------------------------------------
 
 def _context_path():
     workspace = os.environ.get("GITHUB_WORKSPACE", os.getcwd())
@@ -58,14 +51,11 @@ def _context_path():
 
 
 def _read_context():
-    """Read and return the trace context dict, or None if missing."""
     p = _context_path()
     if not p.exists():
         return None
     return json.loads(p.read_text())
 
-
-# -- OTel SDK span export ----------------------------------------------------
 
 class _DeterministicIdGenerator:
     """ID generator that returns pre-set IDs instead of random ones.
@@ -75,23 +65,18 @@ class _DeterministicIdGenerator:
     """
 
     def __init__(self, trace_id_bytes, span_id_bytes):
-        self._trace_id = int.from_bytes(trace_id_bytes, "big")
-        self._span_id = int.from_bytes(span_id_bytes, "big")
+        self._deterministic_trace_id = int.from_bytes(trace_id_bytes, "big")
+        self._deterministic_span_id = int.from_bytes(span_id_bytes, "big")
 
     def generate_trace_id(self):
-        return self._trace_id
+        return self._deterministic_trace_id
 
     def generate_span_id(self):
-        return self._span_id
+        return self._deterministic_span_id
 
 
 def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
-                 start_time_ns, end_time_ns, attributes=None, status_error=False):
-    """Build a single span with deterministic IDs and send it via OTLP HTTP.
-
-    Creates a throwaway TracerProvider per call because each ciwrap invocation
-    is a separate process -- there's no shared state to reuse.
-    """
+                 start_time_ns, end_time_ns, attributes=None, is_error=False):
     run_id, run_attempt, job, runner = _ci_env()
     service_name = os.environ.get("CI_SERVICE_NAME", "cicd-pipeline")
     job_target = os.environ.get("CI_JOB_TARGET", "")
@@ -108,31 +93,29 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
     tracer = provider.get_tracer("ci-observability")
 
     # If this span has a parent, create a remote SpanContext for it.
-    ctx = None
+    parent_ctx = None
     if parent_span_id_bytes:
-        parent_span_ctx = SpanContext(
+        remote_span = SpanContext(
             trace_id=int.from_bytes(trace_id_bytes, "big"),
             span_id=int.from_bytes(parent_span_id_bytes, "big"),
             is_remote=True,
             trace_flags=TraceFlags(TraceFlags.SAMPLED),
         )
-        ctx = otel_trace.set_span_in_context(NonRecordingSpan(parent_span_ctx))
+        parent_ctx = otel_trace.set_span_in_context(NonRecordingSpan(remote_span))
 
     span = tracer.start_span(
         name=name,
-        context=ctx,
+        context=parent_ctx,
         kind=SpanKind.INTERNAL,
         start_time=start_time_ns,
         attributes=attributes or {},
     )
-    span.set_status(StatusCode.ERROR if status_error else StatusCode.OK)
+    span.set_status(StatusCode.ERROR if is_error else StatusCode.OK)
     span.end(end_time=end_time_ns)
 
     provider.force_flush()
     provider.shutdown()
 
-
-# Public helpers-------
 
 def get_step_ids(step_name):
     """Return (trace_id_hex, span_id_hex) for a step, or (None, None) if no context."""
@@ -140,11 +123,9 @@ def get_step_ids(step_name):
     if ctx is None:
         return None, None
     run_id, run_attempt, job, runner = _ci_env()
-    span_id = _deterministic_span_id(run_id, run_attempt, job, runner, step_name)
-    return ctx["trace_id"], span_id.hex()
+    step_span_id = _deterministic_span_id(run_id, run_attempt, job, runner, step_name)
+    return ctx["trace_id"], step_span_id.hex()
 
-
-# Public API (called from ciwrap_logs.py)
 
 def init_trace():
     """Compute deterministic IDs and write the trace context file."""
@@ -196,14 +177,7 @@ def finish_trace():
     print(f"Job span exported (trace_id={ctx['trace_id']}, span_id={ctx['job_span_id']})")
 
 
-def export_step_span(step_name, start_ns, end_ns, exit_code, duration, process_metrics=None):
-    """Export a child span for one CI step. No-op if trace context is missing.
-
-    process_metrics: optional dict of process-level resource attributes
-                     (e.g. process.cpu.max_percent, process.memory.rss.max_bytes)
-                     produced by _ProcessMetricsCollector.summary(). Merged into
-                     the span attributes when --process-metrics is active.
-    """
+def export_step_span(step_name, start_ns, end_ns, exit_code, duration, proc_metrics=None):
     ctx = _read_context()
     if ctx is None:
         print(f"WARNING: No trace context found for step '{step_name}'. "
@@ -224,8 +198,8 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration, process_m
         "cicd.pipeline.task.run.result": result,
         "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
     }
-    if process_metrics:
-        attributes.update(process_metrics)
+    if proc_metrics:
+        attributes.update(proc_metrics)
 
     _export_span(
         name=step_name,
@@ -235,6 +209,6 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration, process_m
         start_time_ns=start_ns,
         end_time_ns=end_ns,
         attributes=attributes,
-        status_error=(exit_code != 0),
+        is_error=(exit_code != 0),
     )
     print(f"Step span exported: {step_name} (result={result}, duration={duration:.2f}s)")

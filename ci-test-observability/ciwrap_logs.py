@@ -51,9 +51,9 @@ class _ProcessMetricsCollector:
         # Cache pid -> Process objects across iterations so cpu_percent() accumulates
         # a real delta. Creating a new Process object per iteration resets the baseline
         # and always returns 0.0 on the first call.
-        _cache = {}  # pid -> psutil.Process
+        _tracked_processes = {}  # pid -> psutil.Process
 
-        def _refresh_cache():
+        def _update_processes():
             """Sync cache with currently live processes.
 
             New processes get a baseline cpu_percent() call (returns 0.0, discarded)
@@ -62,49 +62,55 @@ class _ProcessMetricsCollector:
             """
             try:
                 root = psutil.Process(self._pid)
-                current_pids = {root.pid}
+                alive_pids = {root.pid}
                 if self._include_children:
                     for c in root.children(recursive=True):
-                        current_pids.add(c.pid)
+                        alive_pids.add(c.pid)
             except psutil.NoSuchProcess:
                 return set()
 
-            new_pids = set()
-            for pid in current_pids:
-                if pid not in _cache:
+            added = set()
+            for pid in alive_pids:
+                if pid not in _tracked_processes:
                     try:
-                        proc = psutil.Process(pid)
-                        proc.cpu_percent()  # baseline — discarded
-                        _cache[pid] = proc
-                        new_pids.add(pid)
+                        p = psutil.Process(pid)
+                        p.cpu_percent()  # baseline — discarded
+                        _tracked_processes[pid] = p
+                        added.add(pid)
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
 
-            for pid in list(_cache):
-                if pid not in current_pids:
-                    del _cache[pid]
+            for pid in list(_tracked_processes):
+                if pid not in alive_pids:
+                    del _tracked_processes[pid]
 
-            return new_pids
+            return added
 
-        # Initial population — establishes cpu_percent baselines for all current procs.
-        _refresh_cache()
+        # Initial population — establishes cpu_percent baselines for all current processses.
+        _update_processes()
 
         while not self._stop.is_set():
             self._stop.wait(self._interval)
-            new_pids = _refresh_cache()
+            added = _update_processes()
             # Exclude newly added processes from CPU sum (their baseline was just set).
-            procs = [p for pid, p in _cache.items()
-                     if pid not in new_pids and p.is_running()]
-            if not procs:
-                if not _cache:
+            measurable = []
+            for pid, p in _tracked_processes.items():
+                if pid not in added and p.is_running():
+                    measurable.append(p)
+            if not measurable:
+                if not _tracked_processes:
                     break
                 continue
             try:
-                cpu = sum(p.cpu_percent() for p in procs)
-                rss = sum(p.memory_info().rss for p in _cache.values()
-                          if p.is_running())
+                cpu = 0.0
+                for p in measurable:
+                    cpu += p.cpu_percent()
+                rss = 0
+                for p in _tracked_processes.values():
+                    if p.is_running():
+                        rss += p.memory_info().rss
                 try:
-                    io = _cache[self._pid].io_counters()
+                    io = _tracked_processes[self._pid].io_counters()
                     read_bytes, write_bytes = io.read_bytes, io.write_bytes
                 except (psutil.AccessDenied, AttributeError, psutil.NoSuchProcess, KeyError):
                     read_bytes = write_bytes = None
@@ -116,16 +122,19 @@ class _ProcessMetricsCollector:
         """Return peak/total resource usage as a flat dict ready to merge into span attributes."""
         if not self._samples:
             return {}
-        cpu_vals = [s[0] for s in self._samples]
-        rss_vals = [s[1] for s in self._samples]
+        max_cpu = max(s[0] for s in self._samples)
+        max_rss = max(s[1] for s in self._samples)
         result = {
-            "process.cpu.max_percent": max(cpu_vals),
-            "process.memory.rss.max_bytes": max(rss_vals),
+            "process.cpu.max_percent": max_cpu,
+            "process.memory.rss.max_bytes": max_rss,
         }
-        io_samples = [(s[2], s[3]) for s in self._samples if s[2] is not None]
-        if len(io_samples) >= 2:
-            result["process.disk.read_bytes"] = io_samples[-1][0] - io_samples[0][0]
-            result["process.disk.write_bytes"] = io_samples[-1][1] - io_samples[0][1]
+        io_data = []
+        for s in self._samples:
+            if s[2] is not None:
+                io_data.append((s[2], s[3]))
+        if len(io_data) >= 2:
+            result["process.disk.read_bytes"] = io_data[-1][0] - io_data[0][0]
+            result["process.disk.write_bytes"] = io_data[-1][1] - io_data[0][1]
         return result
 
 
@@ -143,7 +152,7 @@ def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
     flags = TraceFlags(TraceFlags.SAMPLED) if trace_id_hex else TraceFlags.DEFAULT
 
     def emit(body, severity="INFO", timestamp_ns=None, extra_attrs=None):
-        sev_num = SeverityNumber.ERROR if severity == "ERROR" else SeverityNumber.INFO
+        severity_number = SeverityNumber.ERROR if severity == "ERROR" else SeverityNumber.INFO
         attrs = {"cicd.pipeline.task.name": step_name}
         if extra_attrs:
             attrs.update(extra_attrs)
@@ -153,7 +162,7 @@ def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
             span_id=span_id_int,
             trace_flags=flags,
             severity_text=severity,
-            severity_number=sev_num,
+            severity_number=severity_number,
             body=body,
             attributes=attrs,
         ))
@@ -167,7 +176,10 @@ def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
 
 def _reader(stream, console, buffer, source):
     """Read lines from stream, write to console in real time, and buffer for later OTLP export."""
-    for raw in iter(stream.readline, b""):
+    while True:
+        raw = stream.readline()
+        if raw == b"":
+            break
         console.write(raw)
         console.flush()
         line = raw.decode("utf-8", errors="replace").rstrip("\n\r")
@@ -176,7 +188,7 @@ def _reader(stream, console, buffer, source):
     stream.close()
 
 
-def run_and_tee(cmd, emit, process_metrics_opts=None):
+def run_and_tee(cmd, emit, metrics_opts=None):
     """Run cmd, stream output to console, buffer logs, then emit with severity based on exit code.
 
     process_metrics_opts: dict with 'interval' (float, seconds) and 'include_children' (bool),
@@ -184,40 +196,40 @@ def run_and_tee(cmd, emit, process_metrics_opts=None):
     Returns (exit_code, duration, process_metrics_summary).
     """
     t0 = time.monotonic()
-    log_buffer = []  # list of (timestamp_ns, body, source)
+    log_lines = []  # list of (timestamp_ns, body, source)
 
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    metrics_collector = None
-    if process_metrics_opts is not None:
-        metrics_collector = _ProcessMetricsCollector(
-            p.pid,
-            interval=process_metrics_opts.get("interval", 1.0),
-            include_children=process_metrics_opts.get("include_children", False),
+    monitor = None
+    if metrics_opts is not None:
+        monitor = _ProcessMetricsCollector(
+            process.pid,
+            interval=metrics_opts.get("interval", 1.0),
+            include_children=metrics_opts.get("include_children", False),
         )
-        metrics_collector.start()
+        monitor.start()
 
-    t_out = threading.Thread(target=_reader,
-                             args=(p.stdout, sys.stdout.buffer, log_buffer, "stdout"))
-    t_err = threading.Thread(target=_reader,
-                             args=(p.stderr, sys.stderr.buffer, log_buffer, "stderr"))
-    t_out.start()
-    t_err.start()
-    t_out.join()
-    t_err.join()
+    out_thread = threading.Thread(target=_reader,
+                                  args=(process.stdout, sys.stdout.buffer, log_lines, "stdout"))
+    err_thread = threading.Thread(target=_reader,
+                                  args=(process.stderr, sys.stderr.buffer, log_lines, "stderr"))
+    out_thread.start()
+    err_thread.start()
+    out_thread.join()
+    err_thread.join()
 
-    exit_code = p.wait()
+    exit_code = process.wait()
 
-    process_metrics = {}
-    if metrics_collector is not None:
-        metrics_collector.stop()
-        process_metrics = metrics_collector.summary()
+    proc_metrics = {}
+    if monitor is not None:
+        monitor.stop()
+        proc_metrics = monitor.summary()
 
     result = "failure" if exit_code != 0 else "success"
     summary_severity = "ERROR" if exit_code != 0 else "INFO"
 
     # Flush buffered logs — severity based on stream source
-    for ts, body, source in log_buffer:
+    for ts, body, source in log_lines:
         severity = "ERROR" if source == "stderr" else "INFO"
         emit(body, severity=severity, timestamp_ns=ts,
              extra_attrs={"log.source": source})
@@ -232,7 +244,7 @@ def run_and_tee(cmd, emit, process_metrics_opts=None):
     sys.stdout.buffer.write(f"{summary}\n".encode())
     sys.stdout.buffer.flush()
 
-    return exit_code, duration, process_metrics
+    return exit_code, duration, proc_metrics
 
 
 # CLI dispatch
