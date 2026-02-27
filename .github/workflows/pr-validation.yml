@@ -79,15 +79,15 @@ jobs:
 
     - name: Test Ordering.UnitTests
       if: "!cancelled()"
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.UnitTests" -- dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.UnitTests" --junit artifacts/test-results/ordering-unit.xml -- dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-unit.xml"
 
     - name: Test Catalog.FunctionalTests
       if: "!cancelled()"
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Catalog.FunctionalTests" -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Catalog.FunctionalTests" --junit artifacts/test-results/catalog-functional.xml -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/catalog-functional.xml"
 
     - name: Test Ordering.FunctionalTests
       if: "!cancelled()"
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.FunctionalTests" -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.FunctionalTests" --junit artifacts/test-results/ordering-functional.xml -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
 
     - name: Finish trace (export job span)
       if: always()
