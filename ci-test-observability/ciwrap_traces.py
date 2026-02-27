@@ -5,8 +5,9 @@ Provides three operations:
   - finish_trace(): export the parent job span
   - export_step_span(): export a child span for a single CI step
 
-Trace and span IDs are deterministic (SHA-256 of GitHub Actions env vars)
-so every ciwrap_logs.py invocation in the same job shares the same trace.
+Trace and span IDs are deterministic (SHA-256 of normalized CI_* env vars set
+by bootstrap.sh) so every ciwrap_logs.py invocation in the same job shares the
+same trace.
 
 Spans are sent via OTLP HTTP to localhost:4318 (the OTel Collector).
 """
@@ -28,10 +29,10 @@ from opentelemetry.trace import SpanContext, TraceFlags, SpanKind, NonRecordingS
 
 def _ci_env():
     return (
-        os.environ.get("GITHUB_RUN_ID", ""),
-        os.environ.get("GITHUB_RUN_ATTEMPT", "1"),
-        os.environ.get("GITHUB_JOB", ""),
-        os.environ.get("RUNNER_NAME", ""),
+        os.environ.get("CI_RUN_ID", ""),
+        os.environ.get("CI_RUN_ATTEMPT", "1"),
+        os.environ.get("CI_JOB_NAME", ""),
+        os.environ.get("CI_RUNNER_ID", ""),
     )
 
 
@@ -46,7 +47,7 @@ def _deterministic_span_id(run_id, run_attempt, job, runner, suffix="job"):
 
 
 def _context_path():
-    workspace = os.environ.get("GITHUB_WORKSPACE", os.getcwd())
+    workspace = os.environ.get("CI_WORKSPACE", os.getcwd())
     return Path(workspace) / "artifacts" / "otel" / "trace-context.json"
 
 
@@ -82,7 +83,7 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
     job_target = os.environ.get("CI_JOB_TARGET", "")
     resource = Resource.create({
         "service.name": service_name,
-        "cicd.provider.name": "github_actions",
+        "cicd.provider.name": os.environ.get("CI_PROVIDER", "unknown"),
         "cicd.job.name": job,
         "cicd.job.target": job_target,
     })
@@ -131,7 +132,7 @@ def init_trace():
     """Compute deterministic IDs and write the trace context file."""
     run_id, run_attempt, job, runner = _ci_env()
     if not run_id or not job:
-        print("WARNING: GITHUB_RUN_ID or GITHUB_JOB not set; "
+        print("WARNING: CI_RUN_ID or CI_JOB_NAME not set; "
               "trace IDs will be non-deterministic", file=sys.stderr)
 
     trace_id = _deterministic_trace_id(run_id, run_attempt, job, runner)
@@ -160,7 +161,7 @@ def finish_trace():
     trace_id = bytes.fromhex(ctx["trace_id"])
     job_span_id = bytes.fromhex(ctx["job_span_id"])
     end_time_ns = time.time_ns()
-    job_name = os.environ.get("GITHUB_JOB", "ci-job")
+    job_name = os.environ.get("CI_JOB_NAME", "ci-job")
 
     _export_span(
         name=f"job: {job_name}",

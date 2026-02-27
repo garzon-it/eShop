@@ -21,7 +21,6 @@ jobs:
     env:
       CI_SERVICE_NAME: "cicd-pipeline"
       CI_JOB_TARGET: "eshop-e2e"
-      CI_PIPELINE_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       OTLP_AUTH_HEADER: ${{ secrets.OTLP_AUTH_HEADER }}
     strategy:
       matrix:
@@ -60,6 +59,9 @@ jobs:
           "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_linux_amd64.tar.gz"
         tar -xzf otelcol-contrib.tgz otelcol-contrib
         chmod +x otelcol-contrib
+
+    - name: Bootstrap CI context
+      run: bash ci-test-observability/bootstrap.sh
 
     - name: Start OTel Collector
       run: |
