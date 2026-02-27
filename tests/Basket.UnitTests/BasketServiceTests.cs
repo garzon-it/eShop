@@ -22,7 +22,7 @@ public class BasketServiceTests
         var response = await service.GetBasket(new GetBasketRequest(), serverCallContext);
 
         Assert.IsInstanceOfType<CustomerBasketResponse>(response);
-        Assert.AreEqual(response.Items.Count(), 1); // ! TODO andres: set 1 -> 0. Was intentionally modified to generate an error.
+        Assert.AreEqual(response.Items.Count(), 0); // ! TODO andres: set to 1 if test should fail.
     }
 
     [TestMethod]
