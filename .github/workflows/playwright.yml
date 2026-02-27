@@ -42,10 +42,10 @@ jobs:
       with:
         python-version: '3.11'
         cache: 'pip'
-        cache-dependency-path: ci-test-observability/requirements.txt
+        cache-dependency-path: ci-telemetry/requirements.txt
 
     - name: Install Python OTel dependencies
-      run: pip install -r ci-test-observability/requirements.txt
+      run: pip install -r ci-telemetry/requirements.txt
 
     # OTel: prepare folders + collector binary + start collector
     - name: Prepare OTel
@@ -61,32 +61,32 @@ jobs:
         chmod +x otelcol-contrib
 
     - name: Bootstrap CI context
-      run: bash ci-test-observability/setup_ci_context.sh
+      run: bash ci-telemetry/setup_ci_context.sh
 
     - name: Start OTel Collector
       run: |
         set -euo pipefail
         mkdir -p artifacts/otel
-        ./otelcol-contrib --config ci-test-observability/otelcol-ci.yaml \
+        ./otelcol-contrib --config ci-telemetry/otelcol-ci.yaml \
           > artifacts/otel/otelcol-${{ matrix.runner }}.log 2>&1 &
         echo $! > artifacts/otel/otelcol-${{ matrix.runner }}.pid
 
     - name: Initialize trace context
-      run: python3 ci-test-observability/ciwrap.py --init-trace
+      run: python3 ci-telemetry/ciwrap.py --init-trace
 
     - name: Install dependencies
-      run: python3 ci-test-observability/ciwrap.py --name "Install dependencies" --process-metrics --process-include-children -- npm ci
+      run: python3 ci-telemetry/ciwrap.py --name "Install dependencies" --process-metrics --process-include-children -- npm ci
 
     - name: Install .NET HTTPS Development Certificate
       run: |
-        python3 ci-test-observability/ciwrap.py --name "Install .NET HTTPS Dev Certs - tool update" -- dotnet tool update -g linux-dev-certs
-        python3 ci-test-observability/ciwrap.py --name "Install .NET HTTPS Dev Certs - install" -- dotnet linux-dev-certs install
+        python3 ci-telemetry/ciwrap.py --name "Install .NET HTTPS Dev Certs - tool update" -- dotnet tool update -g linux-dev-certs
+        python3 ci-telemetry/ciwrap.py --name "Install .NET HTTPS Dev Certs - install" -- dotnet linux-dev-certs install
 
     - name: Install Playwright Browsers
-      run: python3 ci-test-observability/ciwrap.py --name "Install Playwright Browsers" --process-metrics -- npx playwright install chromium
+      run: python3 ci-telemetry/ciwrap.py --name "Install Playwright Browsers" --process-metrics -- npx playwright install chromium
 
     - name: Run Playwright tests
-      run: python3 ci-test-observability/ciwrap.py --name "Run Playwright tests" --process-metrics --process-include-children --junit artifacts/test-results/results.xml -- npx playwright test
+      run: python3 ci-telemetry/ciwrap.py --name "Run Playwright tests" --process-metrics --process-include-children --junit artifacts/test-results/results.xml -- npx playwright test
       env:
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
@@ -94,7 +94,7 @@ jobs:
 
     - name: Finish trace (export job span)
       if: always()
-      run: python3 ci-test-observability/ciwrap.py --finish-trace
+      run: python3 ci-telemetry/ciwrap.py --finish-trace
 
     - name: Stop OTel Collector (graceful shutdown flushes pending data)
       if: always()
