@@ -6,7 +6,7 @@ Provides three operations:
   - export_step_span(): export a child span for a single CI step
 
 Trace and span IDs are deterministic (SHA-256 of normalized CI_* env vars set
-by bootstrap.sh) so every ciwrap_logs.py invocation in the same job shares the
+by setup_ci_context.sh) so every ciwrap.py invocation in the same job shares the
 same trace.
 
 Spans are sent via OTLP HTTP to localhost:4318 (the OTel Collector).

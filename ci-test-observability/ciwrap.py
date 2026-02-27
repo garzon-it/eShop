@@ -2,9 +2,9 @@
 """Wrap a CI command: stream stdout/stderr to console and export as OTLP logs + trace span.
 
 Usage:
-  ciwrap_logs.py --name "Step name" -- <command>   # wrap a command
-  ciwrap_logs.py --init-trace                      # start trace context
-  ciwrap_logs.py --finish-trace                    # export job span
+  ciwrap.py --name "Step name" -- <command>   # wrap a command
+  ciwrap.py --init-trace                      # start trace context
+  ciwrap.py --finish-trace                    # export job span
 """
 
 import argparse
@@ -319,7 +319,7 @@ def main():
         return 2
 
     if not args.command:
-        print("Usage: ciwrap_logs.py --name \"Step name\" -- <command>", file=sys.stderr)
+        print("Usage: ciwrap.py --name \"Step name\" -- <command>", file=sys.stderr)
         return 2
 
     return cmd_run_step(args)

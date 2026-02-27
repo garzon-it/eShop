@@ -57,7 +57,7 @@ jobs:
         chmod +x otelcol-contrib
 
     - name: Bootstrap CI context
-      run: bash ci-test-observability/bootstrap.sh
+      run: bash ci-test-observability/setup_ci_context.sh
 
     - name: Start OTel Collector
       run: |
@@ -68,30 +68,30 @@ jobs:
         echo $! > artifacts/otel/otelcol-${{ matrix.runner }}.pid
 
     - name: Initialize trace context
-      run: python3 ci-test-observability/ciwrap_logs.py --init-trace
+      run: python3 ci-test-observability/ciwrap.py --init-trace
 
     - name: Build
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Build" -- dotnet build eShop.Web.slnf
+      run: python3 ci-test-observability/ciwrap.py --name "Build" -- dotnet build eShop.Web.slnf
 
     - name: Test Basket.UnitTests
       if: "!cancelled()"
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Basket.UnitTests" --junit artifacts/test-results/basket-unit.xml -- dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/basket-unit.xml"
+      run: python3 ci-test-observability/ciwrap.py --name "Test Basket.UnitTests" --junit artifacts/test-results/basket-unit.xml -- dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/basket-unit.xml"
 
     - name: Test Ordering.UnitTests
       if: "!cancelled()"
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.UnitTests" --junit artifacts/test-results/ordering-unit.xml -- dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-unit.xml"
+      run: python3 ci-test-observability/ciwrap.py --name "Test Ordering.UnitTests" --junit artifacts/test-results/ordering-unit.xml -- dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-unit.xml"
 
     - name: Test Catalog.FunctionalTests
       if: "!cancelled()"
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Catalog.FunctionalTests" --junit artifacts/test-results/catalog-functional.xml -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/catalog-functional.xml"
+      run: python3 ci-test-observability/ciwrap.py --name "Test Catalog.FunctionalTests" --junit artifacts/test-results/catalog-functional.xml -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/catalog-functional.xml"
 
     - name: Test Ordering.FunctionalTests
       if: "!cancelled()"
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Ordering.FunctionalTests" --junit artifacts/test-results/ordering-functional.xml -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
+      run: python3 ci-test-observability/ciwrap.py --name "Test Ordering.FunctionalTests" --junit artifacts/test-results/ordering-functional.xml -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
 
     - name: Finish trace (export job span)
       if: always()
-      run: python3 ci-test-observability/ciwrap_logs.py --finish-trace
+      run: python3 ci-test-observability/ciwrap.py --finish-trace
 
     - name: Stop OTel Collector (graceful shutdown flushes pending data)
       if: always()

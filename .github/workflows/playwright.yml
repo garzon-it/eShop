@@ -61,7 +61,7 @@ jobs:
         chmod +x otelcol-contrib
 
     - name: Bootstrap CI context
-      run: bash ci-test-observability/bootstrap.sh
+      run: bash ci-test-observability/setup_ci_context.sh
 
     - name: Start OTel Collector
       run: |
@@ -72,21 +72,21 @@ jobs:
         echo $! > artifacts/otel/otelcol-${{ matrix.runner }}.pid
 
     - name: Initialize trace context
-      run: python3 ci-test-observability/ciwrap_logs.py --init-trace
+      run: python3 ci-test-observability/ciwrap.py --init-trace
 
     - name: Install dependencies
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Install dependencies" --process-metrics --process-include-children -- npm ci
+      run: python3 ci-test-observability/ciwrap.py --name "Install dependencies" --process-metrics --process-include-children -- npm ci
 
     - name: Install .NET HTTPS Development Certificate
       run: |
-        python3 ci-test-observability/ciwrap_logs.py --name "Install .NET HTTPS Dev Certs - tool update" -- dotnet tool update -g linux-dev-certs
-        python3 ci-test-observability/ciwrap_logs.py --name "Install .NET HTTPS Dev Certs - install" -- dotnet linux-dev-certs install
+        python3 ci-test-observability/ciwrap.py --name "Install .NET HTTPS Dev Certs - tool update" -- dotnet tool update -g linux-dev-certs
+        python3 ci-test-observability/ciwrap.py --name "Install .NET HTTPS Dev Certs - install" -- dotnet linux-dev-certs install
 
     - name: Install Playwright Browsers
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Install Playwright Browsers" --process-metrics -- npx playwright install chromium
+      run: python3 ci-test-observability/ciwrap.py --name "Install Playwright Browsers" --process-metrics -- npx playwright install chromium
 
     - name: Run Playwright tests
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Run Playwright tests" --process-metrics --process-include-children --junit artifacts/test-results/results.xml -- npx playwright test
+      run: python3 ci-test-observability/ciwrap.py --name "Run Playwright tests" --process-metrics --process-include-children --junit artifacts/test-results/results.xml -- npx playwright test
       env:
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
@@ -94,7 +94,7 @@ jobs:
 
     - name: Finish trace (export job span)
       if: always()
-      run: python3 ci-test-observability/ciwrap_logs.py --finish-trace
+      run: python3 ci-test-observability/ciwrap.py --finish-trace
 
     - name: Stop OTel Collector (graceful shutdown flushes pending data)
       if: always()
