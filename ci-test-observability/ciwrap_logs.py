@@ -283,6 +283,10 @@ def cmd_run_step(args):
 
     traces.export_step_span(args.name, start_ns, end_ns, exit_code, duration, process_metrics)
 
+    if args.junit:
+        import parse_junit
+        parse_junit.export_junit(args.junit, args.name)
+
     return exit_code
 
 
@@ -293,6 +297,8 @@ def main():
                     help="Initialize trace context (write trace-context.json)")
     ap.add_argument("--finish-trace", action="store_true",
                     help="Finalize trace and export job span")
+    ap.add_argument("--junit", default=None, metavar="XML_FILE",
+                    help="Path to JUnit XML file to parse and export as test spans")
     ap.add_argument("--process-metrics", action="store_true",
                     help="Collect peak CPU/RSS/IO for the subprocess (requires psutil)")
     ap.add_argument("--process-include-children", action="store_true",

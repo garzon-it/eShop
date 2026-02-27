@@ -86,7 +86,7 @@ jobs:
       run: python3 ci-test-observability/ciwrap_logs.py --name "Install Playwright Browsers" --process-metrics -- npx playwright install chromium
 
     - name: Run Playwright tests
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Run Playwright tests" --process-metrics --process-include-children -- npx playwright test
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Run Playwright tests" --process-metrics --process-include-children --junit artifacts/test-results/results.xml -- npx playwright test
       env:
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
