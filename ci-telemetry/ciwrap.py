@@ -138,7 +138,7 @@ class _ProcessMetricsCollector:
         return result
 
 
-def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
+def _create_log_emitter(step_name, trace_id_hex, span_id_hex, step_target=None):
     """Create an OTLP log emitter for a CI step. Returns (emit_fn, shutdown_fn)."""
     service_name = os.environ.get("CI_SERVICE_NAME", "cicd-pipeline")
     job_target = os.environ.get("CI_JOB_TARGET", "")
@@ -154,6 +154,8 @@ def _create_log_emitter(step_name, trace_id_hex, span_id_hex):
     def emit(body, severity="INFO", timestamp_ns=None, extra_attrs=None):
         severity_number = SeverityNumber.ERROR if severity == "ERROR" else SeverityNumber.INFO
         attrs = {"cicd.pipeline.task.name": step_name}
+        if step_target:
+            attrs["cicd.step.target"] = step_target
         if extra_attrs:
             attrs.update(extra_attrs)
         logger.emit(LogRecord(
@@ -256,7 +258,7 @@ def cmd_run_step(args):
         print(f"WARNING: No trace context found for step '{args.name}'. "
               f"Did you forget to run --init-trace?",
               file=sys.stderr)
-    emit, shutdown_logs = _create_log_emitter(args.name, trace_id, span_id)
+    emit, shutdown_logs = _create_log_emitter(args.name, trace_id, span_id, args.step_target)
 
     cmd = args.command
     if cmd[0] == "--":
@@ -281,7 +283,8 @@ def cmd_run_step(args):
 
     shutdown_logs()
 
-    traces.export_step_span(args.name, start_ns, end_ns, exit_code, duration, process_metrics)
+    traces.export_step_span(args.name, start_ns, end_ns, exit_code, duration, process_metrics,
+                            args.step_target)
 
     if args.junit:
         import parse_junit
@@ -299,6 +302,9 @@ def main():
                     help="Finalize trace and export job span")
     ap.add_argument("--junit", default=None, metavar="XML_FILE",
                     help="Path to JUnit XML file to parse and export as test spans")
+    ap.add_argument("--step-target", default=None, metavar="TARGET",
+                    help="Component or microservice this step targets (e.g. 'catalog-api'). "
+                         "Attached as cicd.step.target on the step span and every log record.")
     ap.add_argument("--process-metrics", action="store_true",
                     help="Collect peak CPU/RSS/IO for the subprocess (requires psutil)")
     ap.add_argument("--process-include-children", action="store_true",

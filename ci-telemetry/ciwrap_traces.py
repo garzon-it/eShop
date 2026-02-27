@@ -178,7 +178,8 @@ def finish_trace():
     print(f"Job span exported (trace_id={ctx['trace_id']}, span_id={ctx['job_span_id']})")
 
 
-def export_step_span(step_name, start_ns, end_ns, exit_code, duration, proc_metrics=None):
+def export_step_span(step_name, start_ns, end_ns, exit_code, duration, proc_metrics=None,
+                     step_target=None):
     ctx = _read_context()
     if ctx is None:
         print(f"WARNING: No trace context found for step '{step_name}'. "
@@ -199,6 +200,8 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration, proc_metr
         "cicd.pipeline.task.run.result": result,
         "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
     }
+    if step_target:
+        attributes["cicd.step.target"] = step_target
     if proc_metrics:
         attributes.update(proc_metrics)
 
