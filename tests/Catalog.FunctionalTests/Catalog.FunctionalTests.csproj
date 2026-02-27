@@ -13,6 +13,7 @@
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+    <PackageReference Include="JunitXml.TestLogger" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
