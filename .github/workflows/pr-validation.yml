@@ -75,7 +75,7 @@ jobs:
 
     - name: Test Basket.UnitTests
       if: "!cancelled()"
-      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Basket.UnitTests" --junit artifacts/test-results/basket-unit.xml -- dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build --logger "junit;LogFilePath=../../../artifacts/test-results/basket-unit.xml"
+      run: python3 ci-test-observability/ciwrap_logs.py --name "Test Basket.UnitTests" --junit artifacts/test-results/basket-unit.xml -- dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/basket-unit.xml"
 
     - name: Test Ordering.UnitTests
       if: "!cancelled()"
