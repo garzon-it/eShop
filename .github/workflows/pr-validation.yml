@@ -36,9 +36,9 @@ jobs:
       uses: actions/setup-dotnet@v3
 
     - name: Setup Python (for ciwrap)
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
-        python-version: '3.11'
+        python-version: '3.13'
         cache: 'pip'
         cache-dependency-path: ci-telemetry/requirements.txt
 
@@ -50,7 +50,7 @@ jobs:
         set -euo pipefail
         mkdir -p artifacts/step-logs artifacts/otel
 
-        OTEL_VERSION="0.99.0"
+        OTEL_VERSION="0.130.0"
         curl -fsSL -o otelcol-contrib.tgz \
           "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_linux_amd64.tar.gz"
         tar -xzf otelcol-contrib.tgz otelcol-contrib
@@ -101,7 +101,7 @@ jobs:
         [ -f "$pidfile" ] || exit 0
         pid=$(cat "$pidfile")
         kill "$pid" 2>/dev/null
-        timeout 12 tail --pid="$pid" -f /dev/null 2>/dev/null
+        timeout 10 tail --pid="$pid" -f /dev/null 2>/dev/null
 
     - uses: actions/upload-artifact@v4
       if: always()
