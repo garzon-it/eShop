@@ -113,7 +113,7 @@ exporters:
   otlphttp/grafana:
     endpoint: "https://ci-otlp.garzon-it.com"
     headers:
-      Authorization: ${env:OTLP_AUTH_HEADER}
+      Authorization: "Basic ${env:OTLP_AUTH_TOKEN}"
 
 service:
   pipelines:
