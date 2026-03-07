@@ -34,7 +34,7 @@ elif [ "${GITLAB_CI:-}" = "true" ]; then
     CI_REF_TYPE="${CI_REF_TYPE:-branch}"
     CI_REPOSITORY="${CI_PROJECT_PATH:-}"
     # CI_RUNNER_DESCRIPTION is the human-readable name set in the runner config.
-    CI_RUNNER_ID="${CI_RUNNER_DESCRIPTION:-}"
+    CI_RUNNER_ID="${CI_RUNNER_DESCRIPTION:-unknown-runner}"
     if [ "${CI_DISPOSABLE_ENVIRONMENT:-}" = "true" ]; then
         CI_WORKER_TYPE="cloud-hosted"
     elif [ "${CI_SHARED_ENVIRONMENT:-}" = "true" ]; then
@@ -42,8 +42,8 @@ elif [ "${GITLAB_CI:-}" = "true" ]; then
     else
         CI_WORKER_TYPE="self-hosted"
     fi
-    CI_RUNNER_OS=""
-    CI_RUNNER_ARCH="${CI_RUNNER_EXECUTABLE_ARCH:-}"
+    CI_RUNNER_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+    CI_RUNNER_ARCH="${CI_RUNNER_EXECUTABLE_ARCH:-unknown}"
     CI_WORKSPACE="${CI_PROJECT_DIR:-$(pwd)}"
     CI_PIPELINE_RUN_URL="${CI_PIPELINE_URL:-}"
 
