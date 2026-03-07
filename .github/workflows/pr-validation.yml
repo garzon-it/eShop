@@ -23,7 +23,7 @@ jobs:
     env:
       CI_SERVICE_NAME: "cicd-pipeline"
       CI_JOB_TARGET: "eshop-pr-validation"
-      OTLP_AUTH_HEADER: ${{ secrets.OTLP_AUTH_HEADER }}
+      OTLP_AUTH_TOKEN: ${{ secrets.OTLP_AUTH_TOKEN }}
     strategy:
       matrix:
         runner: [
