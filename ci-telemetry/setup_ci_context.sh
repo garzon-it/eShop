@@ -66,6 +66,12 @@ else
     CI_PIPELINE_RUN_URL=""
 fi
 
+# Always export so the collector process inherits these vars when sourced from ci-setup.sh.
+export CI_PROVIDER CI_PIPELINE_NAME CI_JOB_NAME CI_RUN_ID CI_RUN_ATTEMPT \
+       CI_COMMIT_SHA CI_REF_NAME CI_REF_TYPE CI_REPOSITORY CI_RUNNER_ID \
+       CI_WORKER_TYPE CI_RUNNER_OS CI_RUNNER_ARCH CI_WORKSPACE CI_PIPELINE_RUN_URL
+
+# On GitHub Actions, also persist to GITHUB_ENV so later steps see them too.
 if [ "${GITHUB_ENV:-}" != "" ]; then
     cat >> "$GITHUB_ENV" <<EOF
 CI_PROVIDER=$CI_PROVIDER
@@ -84,10 +90,6 @@ CI_RUNNER_ARCH=$CI_RUNNER_ARCH
 CI_WORKSPACE=$CI_WORKSPACE
 CI_PIPELINE_RUN_URL=$CI_PIPELINE_RUN_URL
 EOF
-else
-    export CI_PROVIDER CI_PIPELINE_NAME CI_JOB_NAME CI_RUN_ID CI_RUN_ATTEMPT \
-           CI_COMMIT_SHA CI_REF_NAME CI_REF_TYPE CI_REPOSITORY CI_RUNNER_ID \
-           CI_WORKER_TYPE CI_RUNNER_OS CI_RUNNER_ARCH CI_WORKSPACE CI_PIPELINE_RUN_URL
 fi
 
 # Write CI_* vars to a file for shells that can't inherit them (GitLab after_script).
