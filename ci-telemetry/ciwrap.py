@@ -287,8 +287,12 @@ def cmd_run_step(args):
                             args.step_target)
 
     if args.junit:
-        import parse_junit
-        parse_junit.export_junit(args.junit, args.name)
+        if not os.path.exists(args.junit):
+            print(f"WARNING: JUnit file not found, skipping test span export: {args.junit}",
+                  file=sys.stderr)
+        else:
+            import parse_junit
+            parse_junit.export_junit(args.junit, args.name)
 
     return exit_code
 
