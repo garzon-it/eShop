@@ -27,6 +27,31 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.trace import SpanContext, TraceFlags, SpanKind, NonRecordingSpan, StatusCode
 
 
+def _load_ci_env_fallback():
+    """Read CI_* vars from ci-env.sh if they are missing from the environment.
+
+    Needed for GitLab CI where after_script runs in a separate shell and doesn't
+    inherit vars from before_script. No-op on GitHub Actions.
+    """
+    if os.environ.get("CI_RUN_ID"):
+        return  # vars already present, nothing to do
+    env_file = Path("artifacts/otel/ci-env.sh")
+    if not env_file.exists():
+        return
+    with env_file.open() as f:
+        for line in f:
+            line = line.strip()
+            if not line.startswith("export "):
+                continue
+            key, _, val = line[len("export "):].partition("=")
+            # Strip surrounding quotes added by setup_ci_context.sh
+            val = val.strip('"').strip("'")
+            os.environ.setdefault(key, val)
+
+
+_load_ci_env_fallback()
+
+
 def _ci_env():
     return (
         os.environ.get("CI_RUN_ID", ""),

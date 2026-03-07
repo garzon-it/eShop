@@ -47,32 +47,8 @@ jobs:
     - name: Install Python OTel dependencies
       run: pip install -r ci-telemetry/requirements.txt
 
-    # OTel: prepare folders + collector binary + start collector
-    - name: Prepare OTel
-      run: |
-        set -euo pipefail
-        mkdir -p artifacts/step-logs artifacts/otel
-
-        # Download otelcol-contrib (Linux).
-        OTEL_VERSION="0.130.0"
-        curl -fsSL -o otelcol-contrib.tgz \
-          "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_linux_amd64.tar.gz"
-        tar -xzf otelcol-contrib.tgz otelcol-contrib
-        chmod +x otelcol-contrib
-
-    - name: Bootstrap CI context
-      run: bash ci-telemetry/setup_ci_context.sh
-
-    - name: Start OTel Collector
-      run: |
-        set -euo pipefail
-        mkdir -p artifacts/otel
-        ./otelcol-contrib --config ci-telemetry/otelcol-ci.yaml \
-          > artifacts/otel/otelcol-${{ matrix.runner }}.log 2>&1 &
-        echo $! > artifacts/otel/otelcol-${{ matrix.runner }}.pid
-
-    - name: Initialize trace context
-      run: python3 ci-telemetry/ciwrap.py --init-trace
+    - name: Setup OTel
+      run: bash ci-telemetry/ci-setup.sh
 
     - name: Install dependencies
       run: python3 ci-telemetry/ciwrap.py --name "Install dependencies" --process-metrics --process-include-children -- npm ci
@@ -92,19 +68,9 @@ jobs:
         USERNAME1: bob
         PASSWORD: Pass123$
 
-    - name: Finish trace (export job span)
+    - name: Teardown OTel
       if: always()
-      run: python3 ci-telemetry/ciwrap.py --finish-trace
-
-    - name: Stop OTel Collector (graceful shutdown flushes pending data)
-      if: always()
-      run: |
-        set +e
-        pidfile="artifacts/otel/otelcol-${{ matrix.runner }}.pid"
-        [ -f "$pidfile" ] || exit 0
-        pid=$(cat "$pidfile")
-        kill "$pid" 2>/dev/null
-        timeout 10 tail --pid="$pid" -f /dev/null 2>/dev/null
+      run: bash ci-telemetry/ci-teardown.sh
 
     - uses: actions/upload-artifact@v4
       if: always()

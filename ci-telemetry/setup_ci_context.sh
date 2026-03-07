@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # Detect the CI provider and export normalized CI_* env vars used by the
 # OTel Collector config and the ciwrap Python scripts.
-#
-# On GitHub Actions, variables are written to $GITHUB_ENV so they persist
-# across steps. In other environments, they are exported for the current shell
-# (source this script instead of executing it).
 
 set -euo pipefail
 
@@ -27,22 +23,18 @@ if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
 
 elif [ "${GITLAB_CI:-}" = "true" ]; then
     CI_PROVIDER="gitlab_ci"
-    # CI_PIPELINE_NAME and CI_JOB_NAME are also GitLab predefined vars (pipeline name
-    # from workflow:name, and job name). We read them here and fall back as needed.
     CI_PIPELINE_NAME="${CI_PIPELINE_NAME:-${CI_PROJECT_NAME:-}}"
     CI_JOB_NAME="${CI_JOB_NAME:-}"
     CI_RUN_ID="${CI_PIPELINE_ID:-}"
     # GitLab has no re-run attempt counter; each re-run creates a new pipeline.
     CI_RUN_ATTEMPT="1"
-    # CI_COMMIT_SHA is also a GitLab predefined var — self-assignment with fallback.
     CI_COMMIT_SHA="${CI_COMMIT_SHA:-}"
     CI_REF_NAME="${CI_COMMIT_REF_NAME:-}"
     CI_REF_TYPE="${CI_COMMIT_TAG:+tag}"
     CI_REF_TYPE="${CI_REF_TYPE:-branch}"
     CI_REPOSITORY="${CI_PROJECT_PATH:-}"
-    # Use the human-readable runner description as the runner identifier.
+    # CI_RUNNER_DESCRIPTION is the human-readable name set in the runner config.
     CI_RUNNER_ID="${CI_RUNNER_DESCRIPTION:-}"
-    # Derive worker type from disposable/shared environment flags.
     if [ "${CI_DISPOSABLE_ENVIRONMENT:-}" = "true" ]; then
         CI_WORKER_TYPE="cloud-hosted"
     elif [ "${CI_SHARED_ENVIRONMENT:-}" = "true" ]; then
@@ -75,7 +67,6 @@ else
 fi
 
 if [ "${GITHUB_ENV:-}" != "" ]; then
-    # Persist vars across steps on GitHub Actions.
     cat >> "$GITHUB_ENV" <<EOF
 CI_PROVIDER=$CI_PROVIDER
 CI_PIPELINE_NAME=$CI_PIPELINE_NAME
@@ -98,5 +89,26 @@ else
            CI_COMMIT_SHA CI_REF_NAME CI_REF_TYPE CI_REPOSITORY CI_RUNNER_ID \
            CI_WORKER_TYPE CI_RUNNER_OS CI_RUNNER_ARCH CI_WORKSPACE CI_PIPELINE_RUN_URL
 fi
+
+# Write CI_* vars to a file for shells that can't inherit them (GitLab after_script).
+# ciwrap_traces.py reads this as a fallback when vars are missing from the environment.
+mkdir -p "${CI_WORKSPACE}/artifacts/otel"
+cat > "${CI_WORKSPACE}/artifacts/otel/ci-env.sh" <<EOF
+export CI_PROVIDER="$CI_PROVIDER"
+export CI_PIPELINE_NAME="$CI_PIPELINE_NAME"
+export CI_JOB_NAME="$CI_JOB_NAME"
+export CI_RUN_ID="$CI_RUN_ID"
+export CI_RUN_ATTEMPT="$CI_RUN_ATTEMPT"
+export CI_COMMIT_SHA="$CI_COMMIT_SHA"
+export CI_REF_NAME="$CI_REF_NAME"
+export CI_REF_TYPE="$CI_REF_TYPE"
+export CI_REPOSITORY="$CI_REPOSITORY"
+export CI_RUNNER_ID="$CI_RUNNER_ID"
+export CI_WORKER_TYPE="$CI_WORKER_TYPE"
+export CI_RUNNER_OS="$CI_RUNNER_OS"
+export CI_RUNNER_ARCH="$CI_RUNNER_ARCH"
+export CI_WORKSPACE="$CI_WORKSPACE"
+export CI_PIPELINE_RUN_URL="$CI_PIPELINE_RUN_URL"
+EOF
 
 echo "CI provider: $CI_PROVIDER (job=$CI_JOB_NAME, run=$CI_RUN_ID)"
