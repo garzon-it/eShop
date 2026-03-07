@@ -18,5 +18,9 @@ chmod +x otelcol-contrib
 
 ./otelcol-contrib --config ci-telemetry/otelcol-ci.yaml > artifacts/otel/otelcol.log 2>&1 &
 echo $! > artifacts/otel/otelcol.pid
+disown  # detach from this subshell so it survives after ci-setup.sh exits
+
+# Wait for the collector to be ready on port 4318 before sending traces.
+sleep 3
 
 python3 ci-telemetry/ciwrap.py --init-trace

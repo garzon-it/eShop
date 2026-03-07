@@ -80,6 +80,6 @@ jobs:
           artifacts/otel/otel-metrics.json
           artifacts/otel/otel-traces.json
           artifacts/step-logs/
-          artifacts/otel/otelcol-${{ matrix.runner }}.log
+          artifacts/otel/otelcol.log
           artifacts/test-results/
         retention-days: 30
