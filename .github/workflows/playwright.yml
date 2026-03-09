@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ${{ matrix.runner }}
     env:
-      CI_SERVICE_NAME: "cicd-pipeline"
+      CI_SERVICE_NAME: "cicd-pipeline-github"
       CI_JOB_TARGET: "eshop-e2e"
       OTLP_AUTH_TOKEN: ${{ secrets.OTLP_AUTH_TOKEN }}
     strategy:
