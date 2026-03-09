@@ -150,12 +150,13 @@ def _create_log_emitter(step_name, trace_id_hex, span_id_hex, step_target=None):
     trace_id_int = int(trace_id_hex, 16) if trace_id_hex else 0
     span_id_int = int(span_id_hex, 16) if span_id_hex else 0
     flags = TraceFlags(TraceFlags.SAMPLED) if trace_id_hex else TraceFlags.DEFAULT
+    effective_target = step_target or job_target
 
     def emit(body, severity="INFO", timestamp_ns=None, extra_attrs=None):
         severity_number = SeverityNumber.ERROR if severity == "ERROR" else SeverityNumber.INFO
         attrs = {"cicd.pipeline.task.name": step_name}
-        if step_target:
-            attrs["cicd.step.target"] = step_target
+        if effective_target:
+            attrs["cicd.step.target"] = effective_target
         if extra_attrs:
             attrs.update(extra_attrs)
         logger.emit(LogRecord(

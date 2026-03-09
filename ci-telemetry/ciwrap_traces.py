@@ -225,8 +225,9 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration, proc_metr
         "cicd.pipeline.task.run.result": result,
         "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
     }
-    if step_target:
-        attributes["cicd.step.target"] = step_target
+    effective_target = step_target or os.environ.get("CI_JOB_TARGET")
+    if effective_target:
+        attributes["cicd.step.target"] = effective_target
     if proc_metrics:
         attributes.update(proc_metrics)
 
