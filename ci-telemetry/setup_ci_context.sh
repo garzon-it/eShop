@@ -37,8 +37,6 @@ elif [ "${GITLAB_CI:-}" = "true" ]; then
     CI_RUNNER_ID="${CI_RUNNER_DESCRIPTION:-unknown-runner}"
     if [ "${CI_DISPOSABLE_ENVIRONMENT:-}" = "true" ]; then
         CI_WORKER_TYPE="cloud-hosted"
-    elif [ "${CI_SHARED_ENVIRONMENT:-}" = "true" ]; then
-        CI_WORKER_TYPE="shared"
     else
         CI_WORKER_TYPE="self-hosted"
     fi
