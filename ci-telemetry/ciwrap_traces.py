@@ -224,10 +224,9 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration, proc_metr
         "cicd.pipeline.task.name": step_name,
         "cicd.pipeline.task.run.result": result,
         "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
-        # Also set as span attributes so Tempo indexes them for TraceQL filtering.
+        # Also set as span attribute so Tempo indexes it for TraceQL filtering.
         # Resource attributes are not indexed by Grafana Cloud Tempo for custom keys.
         "cicd.pipeline.run.id": run_id,
-        "cicd.worker.type": os.environ.get("CI_WORKER_TYPE", ""),
     }
     effective_target = step_target or os.environ.get("CI_JOB_TARGET")
     if effective_target:

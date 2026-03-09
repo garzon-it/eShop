@@ -122,7 +122,10 @@ class _ProcessMetricsCollector:
         """Return peak/total resource usage as a flat dict ready to merge into span attributes."""
         if not self._samples:
             return {}
-        max_cpu = max(s[0] for s in self._samples)
+        max_cpu_raw = max(s[0] for s in self._samples)
+        import psutil as _psutil
+        cpu_count = _psutil.cpu_count(logical=True) or 1
+        max_cpu = max_cpu_raw / cpu_count  # normalize to 0-100% regardless of core count
         max_rss = max(s[1] for s in self._samples)
         result = {
             "process.cpu.max_percent": max_cpu,
