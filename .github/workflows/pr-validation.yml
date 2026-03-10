@@ -49,7 +49,7 @@ jobs:
       run: bash ci-telemetry/ci-setup.sh
 
     - name: Build
-      run: python3 ci-telemetry/ciwrap.py --name "Build" -- dotnet build eShop.Web.slnf
+      run: python3 ci-telemetry/ciwrap.py --name "Build" --process-metrics --process-include-children -- dotnet build eShop.Web.slnf
 
     - name: Test Basket.UnitTests
       if: "!cancelled()"
