@@ -244,7 +244,7 @@ def run_and_tee(cmd, emit, metrics_opts=None):
     summary = f"__STEP_RESULT__ duration_seconds={duration:.2f} result={result}"
     if proc_metrics:
         if "process.cpu.max_percent" in proc_metrics:
-            summary += f" cpu_percent={proc_metrics['process.cpu.max_percent']:.1f}"
+            summary += f" peak_cpu_percent={proc_metrics['process.cpu.max_percent']:.1f}"
         if "process.memory.rss.max_bytes" in proc_metrics:
             summary += f" rss_bytes={int(proc_metrics['process.memory.rss.max_bytes'])}"
         if "process.disk.read_bytes" in proc_metrics:
