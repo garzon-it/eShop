@@ -33,15 +33,23 @@ elif [ "${GITLAB_CI:-}" = "true" ]; then
     CI_REF_TYPE="${CI_COMMIT_TAG:+tag}"
     CI_REF_TYPE="${CI_REF_TYPE:-branch}"
     CI_REPOSITORY="${CI_PROJECT_PATH:-}"
-    # CI_RUNNER_DESCRIPTION is the human-readable name set in the runner config.
-    CI_RUNNER_ID="${CI_RUNNER_DESCRIPTION:-unknown-runner}"
+    # Prefer human-readable description; fall back to short token then numeric ID.
+    _gl_runner_numeric_id="${CI_RUNNER_ID:-}"
+    CI_RUNNER_ID="${CI_RUNNER_DESCRIPTION:-${CI_RUNNER_SHORT_TOKEN:-runner-${_gl_runner_numeric_id:-unknown}}}"
     if [ "${CI_DISPOSABLE_ENVIRONMENT:-}" = "true" ]; then
         CI_WORKER_TYPE="cloud-hosted"
     else
         CI_WORKER_TYPE="self-hosted"
     fi
     CI_RUNNER_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-    CI_RUNNER_ARCH="${CI_RUNNER_EXECUTABLE_ARCH:-unknown}"
+    # Normalize CI_RUNNER_EXECUTABLE_ARCH ("linux/amd64") to GitHub's format ("X64").
+    case "${CI_RUNNER_EXECUTABLE_ARCH:-}" in
+        *amd64|*x86_64) CI_RUNNER_ARCH="X64"   ;;
+        *arm64|*aarch64) CI_RUNNER_ARCH="ARM64" ;;
+        *arm)            CI_RUNNER_ARCH="ARM"   ;;
+        *386)            CI_RUNNER_ARCH="X86"   ;;
+        *)               CI_RUNNER_ARCH="${CI_RUNNER_EXECUTABLE_ARCH:-unknown}" ;;
+    esac
     CI_WORKSPACE="${CI_PROJECT_DIR:-$(pwd)}"
     CI_PIPELINE_RUN_URL="${CI_PIPELINE_URL:-}"
 
