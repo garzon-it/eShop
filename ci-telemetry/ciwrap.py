@@ -242,11 +242,23 @@ def run_and_tee(cmd, emit, metrics_opts=None):
 
     duration = time.monotonic() - t0
     summary = f"__STEP_RESULT__ duration_seconds={duration:.2f} result={result}"
-    emit(summary, severity=summary_severity, extra_attrs={
+    if proc_metrics:
+        if "process.cpu.max_percent" in proc_metrics:
+            summary += f" cpu_percent={proc_metrics['process.cpu.max_percent']:.1f}"
+        if "process.memory.rss.max_bytes" in proc_metrics:
+            summary += f" rss_bytes={int(proc_metrics['process.memory.rss.max_bytes'])}"
+        if "process.disk.read_bytes" in proc_metrics:
+            summary += f" disk_read_bytes={int(proc_metrics['process.disk.read_bytes'])}"
+        if "process.disk.write_bytes" in proc_metrics:
+            summary += f" disk_write_bytes={int(proc_metrics['process.disk.write_bytes'])}"
+    summary_extra = {
         "log.source": "stdout",
-        "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
+        "cicd.pipeline.task.run.duration": duration,  # ! not in OTEL semantic convention
         "cicd.pipeline.task.run.result": result,
-    })
+    }
+    if proc_metrics:
+        summary_extra.update(proc_metrics)
+    emit(summary, severity=summary_severity, extra_attrs=summary_extra)
     sys.stdout.buffer.write(f"{summary}\n".encode())
     sys.stdout.buffer.flush()
 
