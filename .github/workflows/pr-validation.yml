@@ -61,11 +61,11 @@ jobs:
 
     - name: Test Catalog.FunctionalTests
       if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Catalog.FunctionalTests" --step-target "catalog-api" --junit artifacts/test-results/catalog-functional.xml -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/catalog-functional.xml"
+      run: python3 ci-telemetry/ciwrap.py --name "Test Catalog.FunctionalTests" --step-target "catalog-api" --process-metrics --process-include-children --junit artifacts/test-results/catalog-functional.xml -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/catalog-functional.xml"
 
     - name: Test Ordering.FunctionalTests
       if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Ordering.FunctionalTests" --step-target "ordering-api" --junit artifacts/test-results/ordering-functional.xml -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
+      run: python3 ci-telemetry/ciwrap.py --name "Test Ordering.FunctionalTests" --step-target "ordering-api" --process-metrics --process-include-children --junit artifacts/test-results/ordering-functional.xml -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
 
     - name: Teardown OTel
       if: always()
