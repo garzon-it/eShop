@@ -20,6 +20,7 @@ if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
     CI_RUNNER_ARCH="${RUNNER_ARCH:-}"
     CI_WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
     CI_PIPELINE_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+    CI_COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
 
 elif [ "${GITLAB_CI:-}" = "true" ]; then
     CI_PROVIDER="gitlab_ci"
@@ -52,6 +53,7 @@ elif [ "${GITLAB_CI:-}" = "true" ]; then
     esac
     CI_WORKSPACE="${CI_PROJECT_DIR:-$(pwd)}"
     CI_PIPELINE_RUN_URL="${CI_PIPELINE_URL:-}"
+    CI_COMMIT_URL="${CI_PROJECT_URL:-}/-/commit/${CI_COMMIT_SHA:-}"
 
 else
     echo "WARNING: Unknown CI provider; CI_* vars will be empty." >&2
@@ -70,12 +72,14 @@ else
     CI_RUNNER_ARCH=""
     CI_WORKSPACE="$(pwd)"
     CI_PIPELINE_RUN_URL=""
+    CI_COMMIT_URL=""
 fi
 
 # Always export so the collector process inherits these vars when sourced from ci-setup.sh.
 export CI_PROVIDER CI_PIPELINE_NAME CI_JOB_NAME CI_RUN_ID CI_RUN_ATTEMPT \
        CI_COMMIT_SHA CI_REF_NAME CI_REF_TYPE CI_REPOSITORY CI_RUNNER_ID \
-       CI_WORKER_TYPE CI_RUNNER_OS CI_RUNNER_ARCH CI_WORKSPACE CI_PIPELINE_RUN_URL
+       CI_WORKER_TYPE CI_RUNNER_OS CI_RUNNER_ARCH CI_WORKSPACE CI_PIPELINE_RUN_URL \
+       CI_COMMIT_URL
 
 # On GitHub Actions, also persist to GITHUB_ENV so later steps see them too.
 if [ "${GITHUB_ENV:-}" != "" ]; then
@@ -95,6 +99,7 @@ CI_RUNNER_OS=$CI_RUNNER_OS
 CI_RUNNER_ARCH=$CI_RUNNER_ARCH
 CI_WORKSPACE=$CI_WORKSPACE
 CI_PIPELINE_RUN_URL=$CI_PIPELINE_RUN_URL
+CI_COMMIT_URL=$CI_COMMIT_URL
 EOF
 fi
 
@@ -117,6 +122,7 @@ export CI_RUNNER_OS="$CI_RUNNER_OS"
 export CI_RUNNER_ARCH="$CI_RUNNER_ARCH"
 export CI_WORKSPACE="$CI_WORKSPACE"
 export CI_PIPELINE_RUN_URL="$CI_PIPELINE_RUN_URL"
+export CI_COMMIT_URL="$CI_COMMIT_URL"
 EOF
 
 echo "CI provider: $CI_PROVIDER (job=$CI_JOB_NAME, run=$CI_RUN_ID)"

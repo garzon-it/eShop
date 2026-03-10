@@ -111,6 +111,7 @@ def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
         "cicd.provider.name": os.environ.get("CI_PROVIDER", "unknown"),
         "cicd.job.name": job,
         "cicd.job.target": job_target,
+        "vcs.ref.head.url": os.environ.get("CI_COMMIT_URL", ""),
     })
 
     id_gen = _DeterministicIdGenerator(trace_id_bytes, span_id_bytes)
