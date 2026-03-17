@@ -54,12 +54,15 @@ def _get_test_outcome(testcase_element):
 
 def _build_tracer(trace_id_hex, step_span_id_hex):
     """Set up an OTel tracer and a parent context pointing at the step span."""
-    resource = Resource.create({
-        "service.name": os.environ.get("CI_SERVICE_NAME", "cicd-pipeline"),
+    resource_attrs = {
+        "service.name": os.environ.get("CI_SERVICE_NAME", "unknown_service:ciwrap"),
         "cicd.provider.name": os.environ.get("CI_PROVIDER", "unknown"),
         "cicd.job.name": os.environ.get("CI_JOB_NAME", ""),
         "cicd.job.target": os.environ.get("CI_JOB_TARGET", ""),
-    })
+    }
+    if os.environ.get("CI_SERVICE_NAMESPACE"):
+        resource_attrs["service.namespace"] = os.environ["CI_SERVICE_NAMESPACE"]
+    resource = Resource.create(resource_attrs)
 
     provider = TracerProvider(resource=resource)
     provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(timeout=5)))

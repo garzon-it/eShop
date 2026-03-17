@@ -104,15 +104,19 @@ class _DeterministicIdGenerator:
 def _export_span(name, trace_id_bytes, span_id_bytes, parent_span_id_bytes,
                  start_time_ns, end_time_ns, attributes=None, is_error=False):
     run_id, run_attempt, job, runner = _ci_env()
-    service_name = os.environ.get("CI_SERVICE_NAME", "cicd-pipeline")
+    service_name = os.environ.get("CI_SERVICE_NAME", "unknown_service:ciwrap")
+    service_namespace = os.environ.get("CI_SERVICE_NAMESPACE", "")
     job_target = os.environ.get("CI_JOB_TARGET", "")
-    resource = Resource.create({
+    resource_attrs = {
         "service.name": service_name,
         "cicd.provider.name": os.environ.get("CI_PROVIDER", "unknown"),
         "cicd.job.name": job,
         "cicd.job.target": job_target,
         "vcs.ref.head.url": os.environ.get("CI_COMMIT_URL", ""),
-    })
+    }
+    if service_namespace:
+        resource_attrs["service.namespace"] = service_namespace
+    resource = Resource.create(resource_attrs)
 
     id_gen = _DeterministicIdGenerator(trace_id_bytes, span_id_bytes)
     provider = TracerProvider(resource=resource, id_generator=id_gen)

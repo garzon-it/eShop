@@ -33,6 +33,9 @@ processors:
   # LOW-CARDINALITY (ALL SIGNALS)
   resource/common:
     attributes:
+      - key: service.namespace
+        value: ${env:CI_SERVICE_NAMESPACE}
+        action: upsert
       - key: service.name
         value: ${env:CI_SERVICE_NAME}
         action: upsert
