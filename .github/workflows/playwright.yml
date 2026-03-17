@@ -93,3 +93,4 @@ jobs:
           artifacts/otel/otelcol.log
           artifacts/test-results/
         retention-days: 30
+ 
