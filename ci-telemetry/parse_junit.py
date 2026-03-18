@@ -80,7 +80,7 @@ def _build_tracer(trace_id_hex, step_span_id_hex):
     return provider, tracer, parent_context
 
 
-def export_junit(xml_path, step_name):
+def export_junit(xml_path, step_name, step_target=None):
     trace_id_hex, step_span_id_hex = traces.get_step_ids(step_name)
     if trace_id_hex is None:
         print(
@@ -127,18 +127,22 @@ def export_junit(xml_path, step_name):
                 end_ns = None
 
             span_name = f"{class_name} > {test_name}"
+            attrs = {
+                "test.suite.name": suite_name,
+                "test.case.name": test_name,
+                "test.case.result.status": status,
+                "test.case.result.duration": duration_seconds,
+                "cicd.pipeline.task.name": step_name,
+            }
+            effective_target = step_target or os.environ.get("CI_JOB_TARGET")
+            if effective_target:
+                attrs["cicd.step.target"] = effective_target
             span = tracer.start_span(
                 span_name,
                 context=parent_context,
                 kind=SpanKind.INTERNAL,
                 start_time=start_ns,
-                attributes={
-                    "test.suite.name": suite_name,
-                    "test.case.name": test_name,
-                    "test.case.result.status": status,
-                    "test.case.result.duration": duration_seconds,
-                    "cicd.pipeline.task.name": step_name,
-                },
+                attributes=attrs,
             )
             span.set_status(StatusCode.ERROR if is_error else StatusCode.OK)
             span.end(end_time=end_ns)

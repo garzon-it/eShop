@@ -316,7 +316,7 @@ def cmd_run_step(args):
                   file=sys.stderr)
         else:
             import parse_junit
-            parse_junit.export_junit(args.junit, args.name)
+            parse_junit.export_junit(args.junit, args.name, args.step_target)
 
     return exit_code
 
