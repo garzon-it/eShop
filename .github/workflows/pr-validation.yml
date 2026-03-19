@@ -18,13 +18,7 @@ on:
 
 jobs:  
   test:
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      matrix:
-        runner: [
-          self-hosted,
-          ubuntu-latest
-        ]
+    runs-on: ${{ matrix.runner }} 
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET (global.json)
@@ -32,4 +26,4 @@ jobs:
       - name: Build 
         run: dotnet build eShop.Web.slnf
       - name: Test
-        run: dotnet test --solution eShop.Web.slnf --no-build --no-progress --output detailed
+        run: dotnet test eShop.Web.slnf
