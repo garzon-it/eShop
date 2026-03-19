@@ -19,6 +19,12 @@ on:
 jobs:  
   test:
     runs-on: ${{ matrix.runner }} 
+    strategy:
+      matrix:
+        runner: [
+          self-hosted,
+          ubuntu-latest
+        ]
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET (global.json)
