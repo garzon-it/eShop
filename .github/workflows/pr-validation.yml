@@ -43,3 +43,4 @@ jobs:
       - name: Test Ordering.FunctionalTests
         if: "!cancelled()"
         run: dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
+        
