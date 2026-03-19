@@ -9,22 +9,16 @@ on:
       - '.github/workflows/pr-validation-maui.yml'
   push:
     branches:
-      - main
-      - otel_test
+      - otel_disabled
     paths-ignore:
       - '**.md'
       - 'src/ClientApp/**'
       - 'tests/ClientApp.UnitTests/**'
       - '.github/workflows/pr-validation-maui.yml'
 
-jobs:
+jobs:  
   test:
     runs-on: ${{ matrix.runner }}
-    env:
-      CI_SERVICE_NAMESPACE: "eshop"
-      CI_SERVICE_NAME: "eshop"
-      CI_JOB_TARGET: "eshop-pr-validation"
-      OTLP_AUTH_TOKEN: ${{ secrets.OTLP_AUTH_TOKEN }}
     strategy:
       matrix:
         runner: [
@@ -32,57 +26,10 @@ jobs:
           ubuntu-latest
         ]
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET (global.json)
-      uses: actions/setup-dotnet@v3
-
-    - name: Setup Python (for ciwrap)
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.13'
-        cache: 'pip'
-        cache-dependency-path: ci-telemetry/requirements.txt
-
-    - name: Install Python OTel dependencies
-      run: pip install -r ci-telemetry/requirements.txt
-
-    - name: Setup OTel
-      run: bash ci-telemetry/ci-setup.sh
-
-    - name: Build
-      # run: python3 ci-telemetry/ciwrap.py --name "Build" --process-metrics --process-include-children -- dotnet build eShop.Web.slnf
-      run: dotnet build eShop.Web.slnf
-
-    - name: Test Basket.UnitTests
-      if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Basket.UnitTests" --step-target "basket-api" --junit artifacts/test-results/basket-unit.xml -- dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/basket-unit.xml"
-
-    - name: Test Ordering.UnitTests
-      if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Ordering.UnitTests" --step-target "ordering-api" --junit artifacts/test-results/ordering-unit.xml -- dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-unit.xml"
-
-    - name: Test Catalog.FunctionalTests
-      if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Catalog.FunctionalTests" --step-target "catalog-api" --process-metrics --process-include-children --junit artifacts/test-results/catalog-functional.xml -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/catalog-functional.xml"
-
-    - name: Test Ordering.FunctionalTests
-      if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Ordering.FunctionalTests" --step-target "ordering-api" --process-metrics --process-include-children --junit artifacts/test-results/ordering-functional.xml -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
-
-    - name: Teardown OTel
-      if: always()
-      run: bash ci-telemetry/ci-teardown.sh
-
-    - uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: otel-data-pr-validation-${{ matrix.runner }}
-        path: |
-          artifacts/otel/otel-logs.json
-          artifacts/otel/otel-metrics.json
-          artifacts/otel/otel-traces.json
-          artifacts/step-logs/
-          artifacts/otel/otelcol.log
-          artifacts/test-results/
-        retention-days: 30
- 
+      - uses: actions/checkout@v4
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v3
+      - name: Build 
+        run: dotnet build eShop.Web.slnf
+      - name: Test
+        run: dotnet test --solution eShop.Web.slnf --no-build --no-progress --output detailed
