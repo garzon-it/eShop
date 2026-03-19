@@ -25,5 +25,15 @@ jobs:
         uses: actions/setup-dotnet@v3
       - name: Build 
         run: dotnet build eShop.Web.slnf
-      - name: Test
-        run: dotnet test eShop.Web.slnf
+      - name: Test Basket.UnitTests
+        if: "!cancelled()"
+        run: dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/basket-unit.xml"
+      - name: Test Ordering.UnitTests
+        if: "!cancelled()"
+        run: dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-unit.xml"
+      - name: Test Catalog.FunctionalTests
+        if: "!cancelled()"
+        run: dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/catalog-functional.xml"
+      - name: Test Ordering.FunctionalTests
+        if: "!cancelled()"
+        run: dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
