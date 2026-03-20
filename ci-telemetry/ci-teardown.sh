@@ -11,4 +11,4 @@ pidfile="artifacts/otel/otelcol.pid"
 [ -f "$pidfile" ] || exit 0
 pid=$(cat "$pidfile")
 kill "$pid" 2>/dev/null
-timeout 10 tail --pid="$pid" -f /dev/null 2>/dev/null
+timeout 30 tail --pid="$pid" -f /dev/null 2>/dev/null || true
