@@ -143,17 +143,8 @@ class _ProcessMetricsCollector:
 
 def _create_log_emitter(step_name, trace_id_hex, span_id_hex, step_target=None):
     """Create an OTLP log emitter for a CI step. Returns (emit_fn, shutdown_fn)."""
-    service_name = os.environ.get("CI_SERVICE_NAME", "unknown_service:ciwrap")
-    service_namespace = os.environ.get("CI_SERVICE_NAMESPACE", "")
     job_target = os.environ.get("CI_JOB_TARGET", "")
-    resource_attrs = {
-        "service.name": service_name,
-        "cicd.job.target": job_target,
-        "vcs.ref.head.url": os.environ.get("CI_COMMIT_URL", ""),
-    }
-    if service_namespace:
-        resource_attrs["service.namespace"] = service_namespace
-    resource = Resource.create(resource_attrs)
+    resource = Resource.create({})
     provider = LoggerProvider(resource=resource)
     provider.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter(timeout=5)))
     logger = provider.get_logger("ci-observability")

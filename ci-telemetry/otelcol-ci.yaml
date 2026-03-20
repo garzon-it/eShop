@@ -91,6 +91,9 @@ processors:
       - key: vcs.repository.name
         value: ${env:CI_REPOSITORY}
         action: upsert
+      - key: vcs.ref.head.url
+        value: ${env:CI_COMMIT_URL}
+        action: upsert
 
   batch: {}
 
