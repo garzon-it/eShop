@@ -6,6 +6,8 @@ set -euo pipefail
 
 mkdir -p artifacts/otel artifacts/step-logs artifacts/test-results
 
+pip install --break-system-packages -r ci-telemetry/requirements.txt
+
 OTEL_VERSION="0.130.0"
 curl -fsSL -o otelcol-contrib.tgz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_linux_amd64.tar.gz"

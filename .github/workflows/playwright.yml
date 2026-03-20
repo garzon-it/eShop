@@ -38,16 +38,6 @@ jobs:
       with:
         node-version: lts/*
 
-    - name: Setup Python (for ciwrap)
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.13'
-        cache: 'pip'
-        cache-dependency-path: ci-telemetry/requirements.txt
-
-    - name: Install Python OTel dependencies
-      run: pip install -r ci-telemetry/requirements.txt
-
     - name: Setup OTel
       run: bash ci-telemetry/ci-setup.sh
 
