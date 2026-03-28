@@ -48,10 +48,10 @@ processors:
       - key: cicd.pipeline.name
         value: ${env:CI_PIPELINE_NAME}
         action: upsert
-      - key: cicd.job.name
+      - key: cicd.pipeline.job.name
         value: ${env:CI_JOB_NAME}
         action: upsert
-      - key: cicd.job.target
+      - key: cicd.pipeline.job.target
         value: ${env:CI_JOB_TARGET}
         action: upsert
       - key: cicd.worker.type

@@ -57,8 +57,8 @@ def _build_tracer(trace_id_hex, step_span_id_hex):
     resource_attrs = {
         "service.name": os.environ.get("CI_SERVICE_NAME", "unknown_service:ciwrap"),
         "cicd.provider.name": os.environ.get("CI_PROVIDER", "unknown"),
-        "cicd.job.name": os.environ.get("CI_JOB_NAME", ""),
-        "cicd.job.target": os.environ.get("CI_JOB_TARGET", ""),
+        "cicd.pipeline.job.name": os.environ.get("CI_JOB_NAME", ""),
+        "cicd.pipeline.job.target": os.environ.get("CI_JOB_TARGET", ""),
     }
     if os.environ.get("CI_SERVICE_NAMESPACE"):
         resource_attrs["service.namespace"] = os.environ["CI_SERVICE_NAMESPACE"]
@@ -136,7 +136,7 @@ def export_junit(xml_path, step_name, step_target=None):
             }
             effective_target = step_target or os.environ.get("CI_JOB_TARGET")
             if effective_target:
-                attrs["cicd.step.target"] = effective_target
+                attrs["cicd.pipeline.task.target"] = effective_target
             span = tracer.start_span(
                 span_name,
                 context=parent_context,

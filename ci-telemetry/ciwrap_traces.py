@@ -189,8 +189,8 @@ def finish_trace():
         start_time_ns=ctx["start_time_ns"],
         end_time_ns=end_time_ns,
         attributes={
-            "cicd.job.name": job_name,
-            "cicd.job.duration": (end_time_ns - ctx["start_time_ns"]) / 1e9,
+            "cicd.pipeline.job.name": job_name,
+            "cicd.pipeline.job.duration": (end_time_ns - ctx["start_time_ns"]) / 1e9,
         },
     )
     print(f"Job span exported (trace_id={ctx['trace_id']}, span_id={ctx['job_span_id']})")
@@ -213,17 +213,19 @@ def export_step_span(step_name, start_ns, end_ns, exit_code, duration, proc_metr
 
     result = "failure" if exit_code != 0 else "success"
 
+    pipeline_run_url = os.environ.get("CI_PIPELINE_RUN_URL", "")
     attributes = {
         "cicd.pipeline.task.name": step_name,
+        "cicd.pipeline.task.run.url.full": pipeline_run_url,
         "cicd.pipeline.task.run.result": result,
-        "cicd.pipeline.task.run.duration": duration, # ! not in OTEL semantic convention
+        "cicd.pipeline.task.run.duration": duration,  # ! not in OTel semantic convention
         # Also set as span attribute so Tempo indexes it for TraceQL filtering.
         # Resource attributes are not indexed by Grafana Cloud Tempo for custom keys.
         "cicd.pipeline.run.id": run_id,
     }
     effective_target = step_target or os.environ.get("CI_JOB_TARGET")
     if effective_target:
-        attributes["cicd.step.target"] = effective_target
+        attributes["cicd.pipeline.task.target"] = effective_target
     if proc_metrics:
         attributes.update(proc_metrics)
 

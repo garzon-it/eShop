@@ -45,19 +45,19 @@ jobs:
 
     - name: Test Basket.UnitTests
       if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Basket.UnitTests" --step-target "basket-api" --junit artifacts/test-results/basket-unit.xml -- dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/basket-unit.xml"
+      run: python3 ci-telemetry/ciwrap.py --name "Test Basket.UnitTests" --task-target "basket-api" --junit artifacts/test-results/basket-unit.xml -- dotnet test tests/Basket.UnitTests/Basket.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/basket-unit.xml"
 
     - name: Test Ordering.UnitTests
       if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Ordering.UnitTests" --step-target "ordering-api" --junit artifacts/test-results/ordering-unit.xml -- dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-unit.xml"
+      run: python3 ci-telemetry/ciwrap.py --name "Test Ordering.UnitTests" --task-target "ordering-api" --junit artifacts/test-results/ordering-unit.xml -- dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-unit.xml"
 
     - name: Test Catalog.FunctionalTests
       if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Catalog.FunctionalTests" --step-target "catalog-api" --process-metrics --process-include-children --junit artifacts/test-results/catalog-functional.xml -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/catalog-functional.xml"
+      run: python3 ci-telemetry/ciwrap.py --name "Test Catalog.FunctionalTests" --task-target "catalog-api" --process-metrics --process-include-children --junit artifacts/test-results/catalog-functional.xml -- dotnet test tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/catalog-functional.xml"
 
     - name: Test Ordering.FunctionalTests
       if: "!cancelled()"
-      run: python3 ci-telemetry/ciwrap.py --name "Test Ordering.FunctionalTests" --step-target "ordering-api" --process-metrics --process-include-children --junit artifacts/test-results/ordering-functional.xml -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
+      run: python3 ci-telemetry/ciwrap.py --name "Test Ordering.FunctionalTests" --task-target "ordering-api" --process-metrics --process-include-children --junit artifacts/test-results/ordering-functional.xml -- dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --no-build --logger "junit;LogFilePath=$CI_WORKSPACE/artifacts/test-results/ordering-functional.xml"
 
     - name: Teardown OTel
       if: always()
