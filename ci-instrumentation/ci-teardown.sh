@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-python3 ci-telemetry/ciwrap.py --finish-trace
+python3 ci-instrumentation/ciwrap.py --finish-trace
 
 # SIGTERM lets the collector flush pending batches before exiting.
 set +e

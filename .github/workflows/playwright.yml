@@ -39,26 +39,26 @@ jobs:
         node-version: lts/*
 
     - name: Setup OTel
-      run: bash ci-telemetry/ci-setup.sh
+      run: bash ci-instrumentation/ci-setup.sh
 
     - name: Install dependencies
       run: npm ci
-      # run: python3 ci-telemetry/ciwrap.py --name "Install dependencies" --process-metrics --process-include-children -- npm ci
+      # run: python3 ci-instrumentation/ciwrap.py --name "Install dependencies" --process-metrics --process-include-children -- npm ci
 
     - name: Install .NET HTTPS Development Certificate
       run: |
         dotnet tool update -g linux-dev-certs
         dotnet linux-dev-certs install
       # run: |
-      #   python3 ci-telemetry/ciwrap.py --name "Install .NET HTTPS Dev Certs - tool update" -- dotnet tool update -g linux-dev-certs
-      #   python3 ci-telemetry/ciwrap.py --name "Install .NET HTTPS Dev Certs - install" -- dotnet linux-dev-certs install
+      #   python3 ci-instrumentation/ciwrap.py --name "Install .NET HTTPS Dev Certs - tool update" -- dotnet tool update -g linux-dev-certs
+      #   python3 ci-instrumentation/ciwrap.py --name "Install .NET HTTPS Dev Certs - install" -- dotnet linux-dev-certs install
 
     - name: Install Playwright Browsers
-      # run: python3 ci-telemetry/ciwrap.py --name "Install Playwright Browsers" --process-metrics -- npx playwright install chromium
+      # run: python3 ci-instrumentation/ciwrap.py --name "Install Playwright Browsers" --process-metrics -- npx playwright install chromium
       run: npx playwright install chromium
 
     - name: Run Playwright tests
-      run: python3 ci-telemetry/ciwrap.py --name "Run Playwright tests" --process-metrics --process-include-children --junit artifacts/test-results/results.xml -- npx playwright test
+      run: python3 ci-instrumentation/ciwrap.py --name "Run Playwright tests" --process-metrics --process-include-children --junit artifacts/test-results/results.xml -- npx playwright test
       env:
         ESHOP_USE_HTTP_ENDPOINTS: 1
         USERNAME1: bob
@@ -66,7 +66,7 @@ jobs:
 
     - name: Teardown OTel
       if: always()
-      run: bash ci-telemetry/ci-teardown.sh
+      run: bash ci-instrumentation/ci-teardown.sh
 
     - uses: actions/upload-artifact@v4
       if: always()

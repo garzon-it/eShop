@@ -6,7 +6,7 @@ set -euo pipefail
 
 mkdir -p artifacts/otel artifacts/step-logs artifacts/test-results
 
-pip install --break-system-packages -r ci-telemetry/requirements.txt
+pip install --break-system-packages -r ci-instrumentation/requirements.txt
 
 OTEL_VERSION="0.130.0"
 curl -fsSL -o otelcol-contrib.tgz \
@@ -16,13 +16,13 @@ chmod +x otelcol-contrib
 
 # Source so CI_* vars are inherited by the collector process below.
 # Also writes ci-env.sh for shells that can't inherit env (GitLab after_script).
-. ci-telemetry/setup_ci_context.sh
+. ci-instrumentation/setup_ci_context.sh
 
-./otelcol-contrib --config ci-telemetry/otelcol-ci.yaml > artifacts/otel/otelcol.log 2>&1 &
+./otelcol-contrib --config ci-instrumentation/otelcol-ci.yaml > artifacts/otel/otelcol.log 2>&1 &
 echo $! > artifacts/otel/otelcol.pid
 disown  # detach from this subshell so it survives after ci-setup.sh exits
 
 # Wait for the collector to be ready on port 4318 before sending traces.
 sleep 3
 
-python3 ci-telemetry/ciwrap.py --init-trace
+python3 ci-instrumentation/ciwrap.py --init-trace
