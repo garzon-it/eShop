@@ -71,7 +71,7 @@ jobs:
           artifacts/otel/otel-logs.json
           artifacts/otel/otel-metrics.json
           artifacts/otel/otel-traces.json
-          artifacts/step-logs/
+          artifacts/task-logs/
           artifacts/otel/otelcol.log
           artifacts/test-results/
         retention-days: 30
