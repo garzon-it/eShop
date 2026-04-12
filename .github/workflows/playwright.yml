@@ -27,7 +27,7 @@ jobs:
       matrix:
         runner: [
           self-hosted, 
-          # ubuntu-latest
+          ubuntu-latest
         ]
     steps:
     - uses: actions/checkout@v4
@@ -88,4 +88,4 @@ jobs:
           artifacts/otel/otelcol.log
           artifacts/test-results/
         retention-days: 30
-  
+ 
