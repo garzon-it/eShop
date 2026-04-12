@@ -27,7 +27,7 @@ jobs:
       matrix:
         runner: [
           self-hosted, 
-          ubuntu-latest
+          # ubuntu-latest
         ]
     steps:
     - uses: actions/checkout@v4
